@@ -1,0 +1,304 @@
+{
+	"info": {
+		"_postman_id": "galala-iaas-api-collection",
+		"name": "Galala IAAS API",
+		"description": "Galala University IAAS Backend — Student API Collection.\n\nAuthentication: Laravel Sanctum Bearer Tokens.\nAdmin access: Filament dashboard at /admin (session-based, no API).",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://127.0.0.1:8000/api/v1",
+			"type": "string"
+		},
+		{
+			"key": "student_token",
+			"value": "",
+			"type": "string"
+		}
+	],
+	"item": [
+		{
+			"name": "Authentication",
+			"item": [
+				{
+					"name": "Student Login",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var jsonData = pm.response.json();",
+									"",
+									"if (jsonData.success && jsonData.data && jsonData.data.token) {",
+									"    pm.collectionVariables.set('student_token', jsonData.data.token);",
+									"    console.log('Token saved: ' + jsonData.data.token);",
+									"}",
+									"",
+									"pm.test('Login successful', function () {",
+									"    pm.response.to.have.status(200);",
+									"    pm.expect(jsonData.success).to.be.true;",
+									"    pm.expect(jsonData.data.token).to.be.a('string');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"student_id\": \"20230001\",\n    \"password\": \"password123\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/student/login",
+							"host": ["{{base_url}}"],
+							"path": ["student", "login"]
+						},
+						"description": "Authenticate a student using student_id and password.\nReturns a Sanctum Bearer token.\n\nNote: Login uses student_id, NOT email."
+					},
+					"response": []
+				},
+				{
+					"name": "Student Logout",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var jsonData = pm.response.json();",
+									"",
+									"pm.test('Logout successful', function () {",
+									"    pm.response.to.have.status(200);",
+									"    pm.expect(jsonData.success).to.be.true;",
+									"});",
+									"",
+									"if (jsonData.success) {",
+									"    pm.collectionVariables.set('student_token', '');",
+									"    console.log('Token cleared');",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{student_token}}"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/student/logout",
+							"host": ["{{base_url}}"],
+							"path": ["student", "logout"]
+						},
+						"description": "Revoke the current access token.\nAfter logout, the token is no longer valid."
+					},
+					"response": []
+				}
+			],
+			"description": "Student authentication endpoints.\nLogin returns a token; Logout revokes it."
+		},
+		{
+			"name": "Profile",
+			"item": [
+				{
+					"name": "Get Student Profile",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var jsonData = pm.response.json();",
+									"",
+									"pm.test('Profile retrieved', function () {",
+									"    pm.response.to.have.status(200);",
+									"    pm.expect(jsonData.success).to.be.true;",
+									"    pm.expect(jsonData.data).to.have.property('full_name');",
+									"    pm.expect(jsonData.data).to.have.property('student_id');",
+									"    pm.expect(jsonData.data).to.have.property('faculty');",
+									"    pm.expect(jsonData.data).to.have.property('gpa');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{student_token}}"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/student/profile",
+							"host": ["{{base_url}}"],
+							"path": ["student", "profile"]
+						},
+						"description": "Retrieve the authenticated student's profile.\n\nReturns: full_name, student_id, email, faculty (id + name), gpa, credits_completed, credits_required."
+					},
+					"response": []
+				}
+			],
+			"description": "Student profile endpoint."
+		},
+		{
+			"name": "Vehicle",
+			"item": [
+				{
+					"name": "Get Vehicle State",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var jsonData = pm.response.json();",
+									"",
+									"pm.test('Vehicle state retrieved', function () {",
+									"    pm.response.to.have.status(200);",
+									"    pm.expect(jsonData.success).to.be.true;",
+									"    pm.expect(jsonData.status).to.be.oneOf(['none', 'pending', 'approved', 'rejected']);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{student_token}}"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/student/vehicle",
+							"host": ["{{base_url}}"],
+							"path": ["student", "vehicle"]
+						},
+						"description": "Get the current vehicle access state.\n\nPossible statuses:\n- none: no request or expired permit\n- pending: waiting for admin review\n- approved: active permit (today between semester dates)\n- rejected: latest request was rejected"
+					},
+					"response": []
+				},
+				{
+					"name": "Submit Vehicle Request",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var jsonData = pm.response.json();",
+									"",
+									"pm.test('Vehicle request submitted', function () {",
+									"    pm.response.to.have.status(200);",
+									"    pm.expect(jsonData.success).to.be.true;",
+									"    pm.expect(jsonData.data.status).to.equal('pending');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{student_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"vehicle_type\": \"Car\",\n    \"vehicle_model\": \"Toyota Corolla\",\n    \"vehicle_color\": \"White\",\n    \"plate_number\": \"ABC123\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/student/vehicle-requests",
+							"host": ["{{base_url}}"],
+							"path": ["student", "vehicle-requests"]
+						},
+						"description": "Submit a new vehicle access request.\n\nBusiness rules:\n- Blocked if student has a pending request (422)\n- Blocked if student has an active approved permit (422)\n- Allowed if latest request was rejected\n- Allowed if previous approved permit expired\n\nAll 4 fields are required."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Vehicle Request History",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var jsonData = pm.response.json();",
+									"",
+									"pm.test('History retrieved', function () {",
+									"    pm.response.to.have.status(200);",
+									"    pm.expect(jsonData.success).to.be.true;",
+									"    pm.expect(jsonData.data).to.be.an('array');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{student_token}}"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/student/vehicle-requests/history",
+							"host": ["{{base_url}}"],
+							"path": ["student", "vehicle-requests", "history"]
+						},
+						"description": "Retrieve all vehicle requests for the authenticated student.\nSorted by newest first.\n\nEach entry includes: id, vehicle_type, vehicle_model, vehicle_color, plate_number, status, valid_from, valid_until, rejection_reason, created_at."
+					},
+					"response": []
+				}
+			],
+			"description": "Vehicle access management endpoints.\nCheck state, submit requests, view history."
+		}
+	]
+}

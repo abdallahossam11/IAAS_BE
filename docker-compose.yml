@@ -1,0 +1,75 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: galala_iaas_app
+    restart: unless-stopped
+    working_dir: /var/www/html
+    volumes:
+      - .:/var/www/html
+      - /var/www/html/vendor
+    environment:
+      - APP_NAME=Galala IAAS
+      - APP_ENV=production
+      - APP_DEBUG=false
+      - APP_URL=http://localhost:8000
+      - DB_CONNECTION=mysql
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_DATABASE=iaas_db
+      - DB_USERNAME=iaas_user
+      - DB_PASSWORD=iaas_password
+      - SESSION_DRIVER=database
+      - CACHE_STORE=database
+      - QUEUE_CONNECTION=database
+      - SANCTUM_STATEFUL_DOMAINS=localhost,127.0.0.1
+      - RUN_MIGRATIONS=false
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - galala_network
+
+  nginx:
+    image: nginx:alpine
+    container_name: galala_iaas_nginx
+    restart: unless-stopped
+    ports:
+      - "8000:80"
+    volumes:
+      - .:/var/www/html
+      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf
+    depends_on:
+      - app
+    networks:
+      - galala_network
+
+  mysql:
+    image: mysql:8.0
+    container_name: galala_iaas_mysql
+    restart: unless-stopped
+    ports:
+      - "3307:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: root_password
+      MYSQL_DATABASE: iaas_db
+      MYSQL_USER: iaas_user
+      MYSQL_PASSWORD: iaas_password
+    volumes:
+      - galala_mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-proot_password"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - galala_network
+
+volumes:
+  galala_mysql_data:
+    driver: local
+
+networks:
+  galala_network:
+    driver: bridge
