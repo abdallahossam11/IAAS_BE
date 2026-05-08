@@ -12,7 +12,7 @@
 | Field | Value |
 |-------|-------|
 | Email | `admin@galala.edu.eg` |
-| Password | `password123` |
+| Password | *Set via ADMIN_PASSWORD in .env* |
 | Role | `super_admin` |
 
 > **⚠️ This account is protected.** It cannot be deleted, its role cannot be changed from `super_admin`, and its email cannot be changed. These protections are enforced at both the UI and backend levels.

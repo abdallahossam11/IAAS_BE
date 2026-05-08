@@ -127,9 +127,7 @@ class VehicleRequestResource extends Resource
                         $hasActivePermit = VehicleRequest::where('student_id', $record->student_id)
                             ->where('id', '!=', $record->id)
                             ->where('status', 'approved')
-                            ->whereNotNull('semester_start_date')
                             ->whereNotNull('semester_end_date')
-                            ->where('semester_start_date', '<=', $today)
                             ->where('semester_end_date', '>=', $today)
                             ->exists();
 

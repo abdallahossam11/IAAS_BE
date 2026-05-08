@@ -55,12 +55,10 @@ class VehicleController extends Controller
         }
 
         // Approved — check if active
-        // Current business rule: only currently active approved permits block new requests.
-        // Future-approved permits are not treated as active unless requirements change.
+        // Current business rule: Any approved permit with semester_end_date >= today blocks new requests.
         if ($latest->status === 'approved') {
-            $isActive = $latest->semester_start_date
-                && $latest->semester_end_date
-                && $today->between($latest->semester_start_date, $latest->semester_end_date);
+            $isActive = $latest->semester_end_date
+                && $latest->semester_end_date >= $today;
 
             if ($isActive) {
                 return response()->json([
@@ -148,13 +146,10 @@ class VehicleController extends Controller
         }
 
         // Check for any active approved permit
-        // Current business rule: only currently active approved permits block new requests.
-        // Future-approved permits are not treated as active unless requirements change.
+        // Current business rule: Any approved permit with semester_end_date >= today blocks new requests.
         $hasActivePermit = $student->vehicleRequests()
             ->where('status', 'approved')
-            ->whereNotNull('semester_start_date')
             ->whereNotNull('semester_end_date')
-            ->where('semester_start_date', '<=', $today)
             ->where('semester_end_date', '>=', $today)
             ->exists();
 

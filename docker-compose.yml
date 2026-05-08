@@ -19,7 +19,7 @@ services:
       - DB_PORT=3306
       - DB_DATABASE=iaas_db
       - DB_USERNAME=iaas_user
-      - DB_PASSWORD=iaas_password
+      - DB_PASSWORD=${DB_PASSWORD:-iaas_password}
       - SESSION_DRIVER=database
       - CACHE_STORE=database
       - QUEUE_CONNECTION=database
@@ -52,14 +52,14 @@ services:
     ports:
       - "3307:3306"
     environment:
-      MYSQL_ROOT_PASSWORD: root_password
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-root_password}
       MYSQL_DATABASE: iaas_db
       MYSQL_USER: iaas_user
-      MYSQL_PASSWORD: iaas_password
+      MYSQL_PASSWORD: ${DB_PASSWORD:-iaas_password}
     volumes:
       - galala_mysql_data:/var/lib/mysql
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-proot_password"]
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -u root -p$${MYSQL_ROOT_PASSWORD}"]
       interval: 10s
       timeout: 5s
       retries: 5

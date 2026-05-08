@@ -10,6 +10,7 @@ The **Galala University Intelligent Academic Advisory System (IAAS)** backend is
 This document covers **only** the Student API endpoints.
 
 > **Admin access**: Admins log in through the Filament dashboard at `/admin`. There is no admin API login.
+> **Gate access**: Gate devices use the `X-GATE-API-KEY` header to access the `v1/gate` endpoints.
 
 ---
 
@@ -104,8 +105,8 @@ Authorization: Bearer {token}
 
 ```json
 {
-  "student_id": "20230001",
-  "password": "password123"
+  "student_id": "YOUR_STUDENT_ID",
+  "password": "YOUR_PASSWORD"
 }
 ```
 
@@ -126,7 +127,7 @@ Authorization: Bearer {token}
     "token": "1|BgGdP0netZEMfVhjZNM7MhOgf4BhMLWohsOi28Kcf7cda223",
     "student": {
       "id": 1,
-      "student_id": "20230001",
+      "student_id": "YOUR_STUDENT_ID",
       "full_name": "Ahmed Mohamed",
       "email": "student@galala.edu.eg"
     }
@@ -220,7 +221,7 @@ None.
   "success": true,
   "data": {
     "full_name": "Ahmed Mohamed",
-    "student_id": "20230001",
+    "student_id": "YOUR_STUDENT_ID",
     "email": "student@galala.edu.eg",
     "faculty": {
       "id": 1,
@@ -488,6 +489,94 @@ None.
 
 ---
 
+### 5.7 POST `/api/v1/gate/vehicle-access/check`
+
+**Purpose**: Receives OCR plate text from the gate/LPR system to verify vehicle access.
+
+| Property | Value |
+|----------|-------|
+| Auth Required | Yes — `X-GATE-API-KEY` header |
+| Method | `POST` |
+| URL | `/api/v1/gate/vehicle-access/check` |
+
+#### Request Headers
+
+| Header | Value |
+|--------|-------|
+| X-GATE-API-KEY | `your_gate_api_key` |
+| Content-Type | `application/json` |
+| Accept | `application/json` |
+
+#### Request Body
+
+```json
+{
+  "OCR": "س م ١ ٤ ٦ ٩"
+}
+```
+
+| Field | Type | Required | Rules |
+|-------|------|----------|-------|
+| `OCR` | string | Yes | Max 100 chars |
+
+#### Business Rules
+- Only approved vehicle requests can allow entry.
+- Permit must be valid today.
+- Pending requests do not allow entry.
+- Rejected requests do not allow entry.
+- Expired approved permits do not allow entry.
+- OCR text is normalized before comparison.
+- This API is for gate devices only, not students/admins/frontend users.
+
+#### Success Response — Allowed (`200 OK`)
+
+```json
+{
+  "success": true,
+  "access": "allowed",
+  "message": "Vehicle permit is approved and valid.",
+  "data": {
+    "plate_number": "س م ١ ٤ ٦ ٩",
+    "normalized_plate": "سم1469",
+    "student": {
+      "student_id": "YOUR_STUDENT_ID",
+      "full_name": "Student Name",
+      "faculty": "Faculty Name"
+    },
+    "permit": {
+      "id": 1,
+      "valid_from": "2026-02-01",
+      "valid_until": "2026-06-30"
+    }
+  }
+}
+```
+
+#### Success Response — Denied (`200 OK`)
+
+```json
+{
+  "success": true,
+  "access": "denied",
+  "message": "No approved valid vehicle permit found for this plate.",
+  "data": {
+    "plate_number": "س م ١ ٤ ٦ ٩",
+    "normalized_plate": "سم1469"
+  }
+}
+```
+
+#### Error Response — Unauthorized (`401 Unauthorized`)
+
+```json
+{
+  "success": false,
+  "message": "Unauthorized gate device."
+}
+```
+
+---
+
 ## 6. Error Codes Summary
 
 | HTTP Code | Meaning | When |
@@ -538,13 +627,16 @@ None.
 
 ## 8. Testing Credentials
 
+> [!WARNING]
+> The following credentials are for **local/staging testing only**. No default student accounts exist in production. Students must be created manually from Filament by Super Admin or Academic Admin.
+
 ### Admin Dashboard (Filament)
 
 | Field | Value |
 |-------|-------|
 | URL | `http://127.0.0.1:8000/admin` |
 | Email | `admin@galala.edu.eg` |
-| Password | `password123` |
+| Password | *Set via ADMIN_PASSWORD in .env* |
 
 > Admins log in through the Filament dashboard only. There is no admin API.
 
@@ -552,11 +644,8 @@ None.
 
 | Field | Value |
 |-------|-------|
-| Student ID | `20230001` |
-| Password | `password123` |
-| Name | Ahmed Mohamed |
-| Email | student@galala.edu.eg |
-| Faculty | Engineering |
+| Student ID | *(Create manually in Filament)* |
+| Password | *(Create manually in Filament)* |
 
 ---
 
@@ -572,8 +661,9 @@ php artisan migrate:fresh --seed
 php artisan serve
 
 # 4. Test login
+# Replace YOUR_STUDENT_ID and YOUR_PASSWORD with a student you created in Filament
 curl -X POST http://127.0.0.1:8000/api/v1/student/login \
   -H "Content-Type: application/json" \
   -H "Accept: application/json" \
-  -d '{"student_id": "20230001", "password": "password123"}'
+  -d '{"student_id": "YOUR_STUDENT_ID", "password": "YOUR_PASSWORD"}'
 ```

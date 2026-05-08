@@ -143,16 +143,13 @@ Full Docker guide: [docs/docker-deployment.md](docs/docker-deployment.md)
 |-------|-------|
 | URL | http://127.0.0.1:8000/admin |
 | Email | `admin@galala.edu.eg` |
-| Password | `password123` |
+| Password | *Set via ADMIN_PASSWORD in .env* |
 
 ### Test Student (API)
 
-| Field | Value |
-|-------|-------|
-| Student ID | `20230001` |
-| Password | `password123` |
-| Name | Ahmed Mohamed |
-| Faculty | Engineering |
+*Note: The default `StudentSeeder` has been removed for production security.*
+
+To test the student API, you must first create a student account manually from the Filament Admin Dashboard using a Super Admin or Academic Admin account. The login requires the student's **Student ID** and **Password**.
 
 ---
 
@@ -166,6 +163,21 @@ Full Docker guide: [docs/docker-deployment.md](docs/docker-deployment.md)
 | GET | `/api/v1/student/vehicle` | Bearer |
 | POST | `/api/v1/student/vehicle-requests` | Bearer |
 | GET | `/api/v1/student/vehicle-requests/history` | Bearer |
+| POST | `/api/v1/gate/vehicle-access/check` | X-GATE-API-KEY |
+
+**Note on Gate API**:
+- This endpoint is for gate/OCR/LPR devices only.
+- It is not a student endpoint.
+- It requires the `X-GATE-API-KEY` header.
+- It receives OCR plate text in the `OCR` field.
+
+Example request:
+
+```json
+{
+  "OCR": "س م ١ ٤ ٦ ٩"
+}
+```
 
 Full API documentation: [docs/api-documentation.md](docs/api-documentation.md)
 

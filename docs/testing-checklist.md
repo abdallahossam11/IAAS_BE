@@ -31,7 +31,7 @@ Manual testing procedures for the Galala University IAAS backend.
 
 - [ ] Navigate to `http://127.0.0.1:8000/admin`
   - Expected: Filament login page appears
-- [ ] Login with `admin@galala.edu.eg` / `password123`
+- [ ] Login with `admin@galala.edu.eg` / *(Your ADMIN_PASSWORD from .env)*
   - Expected: Dashboard loads with "Welcome" message
 - [ ] Login with wrong password
   - Expected: Error message, login rejected
@@ -105,7 +105,7 @@ Manual testing procedures for the Galala University IAAS backend.
 
 ### Login
 
-- [ ] `POST /api/v1/student/login` with `{"student_id":"20230001","password":"password123"}`
+- [ ] `POST /api/v1/student/login` with `{"student_id":"YOUR_STUDENT_ID","password":"YOUR_PASSWORD"}`
   - Expected: `200` with `success: true` and `data.token`
 - [ ] `POST /api/v1/student/login` with wrong password
   - Expected: `401` with `"Invalid student ID or password"`

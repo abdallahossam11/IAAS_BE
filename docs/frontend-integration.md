@@ -16,6 +16,15 @@ All student endpoints are under `/api/v1/student/`.
 
 ---
 
+## Deployment & CORS
+
+When the frontend is deployed to a different domain than the backend, Cross-Origin Resource Sharing (CORS) must be configured correctly:
+- The backend's `.env` file must set the `FRONTEND_URL` variable to your exact frontend domain (e.g., `https://your-frontend-domain.com`).
+- If you use Sanctum's session/cookie authentication (not Bearer tokens), you must also set `SANCTUM_STATEFUL_DOMAINS` in the backend `.env`.
+- The backend's `config/cors.php` file defines allowed origins. The default Laravel configuration securely uses the `FRONTEND_URL` to restrict cross-origin requests.
+
+---
+
 ## Required Headers
 
 ### All Requests
@@ -38,6 +47,14 @@ Authorization: Bearer {token}
 Accept: application/json
 ```
 
+### Gate API Clients
+
+```
+X-GATE-API-KEY: {gate_api_key}
+Content-Type: application/json
+Accept: application/json
+```
+
 ---
 
 ## Authentication Flow
@@ -52,8 +69,8 @@ POST /api/v1/student/login
 Content-Type: application/json
 
 {
-  "student_id": "20230001",
-  "password": "password123"
+  "student_id": "YOUR_STUDENT_ID",
+  "password": "YOUR_PASSWORD"
 }
 ```
 
@@ -309,7 +326,4 @@ Authorization: Bearer {token}
 
 ### Testing Credentials
 
-| Field | Value |
-|-------|-------|
-| Student ID | `20230001` |
-| Password | `password123` |
+*Note: The default test student has been removed for production security. Please ask your administrator to create a test student account for you via the Filament Admin Dashboard.*

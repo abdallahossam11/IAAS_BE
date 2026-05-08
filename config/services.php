@@ -35,4 +35,8 @@ return [
         ],
     ],
 
+    'gate' => [
+        'api_key' => env('GATE_API_KEY'),
+    ],
+
 ];

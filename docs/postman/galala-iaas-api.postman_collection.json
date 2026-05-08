@@ -15,6 +15,11 @@
 			"key": "student_token",
 			"value": "",
 			"type": "string"
+		},
+		{
+			"key": "gate_api_key",
+			"value": "",
+			"type": "string"
 		}
 	],
 	"item": [
@@ -59,7 +64,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"student_id\": \"20230001\",\n    \"password\": \"password123\"\n}"
+							"raw": "{\n    \"student_id\": \"YOUR_STUDENT_ID\",\n    \"password\": \"YOUR_PASSWORD\"\n}"
 						},
 						"url": {
 							"raw": "{{base_url}}/student/login",
@@ -299,6 +304,48 @@
 				}
 			],
 			"description": "Vehicle access management endpoints.\nCheck state, submit requests, view history."
+		},
+		{
+			"name": "Gate",
+			"item": [
+				{
+					"name": "Gate Vehicle Access",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "X-GATE-API-KEY",
+								"value": "{{gate_api_key}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"OCR\": \"س م ١ ٤ ٦ ٩\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/gate/vehicle-access/check",
+							"host": ["{{base_url}}"],
+							"path": ["gate", "vehicle-access", "check"]
+						},
+						"description": "Checks OCR/LPR vehicle plate against approved valid vehicle permits."
+					},
+					"response": []
+				}
+			],
+			"description": "Gate Vehicle Access API."
 		}
 	]
 }

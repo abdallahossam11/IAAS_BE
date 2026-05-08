@@ -20,6 +20,9 @@ RUN apt-get update && apt-get install -y \
         intl \
         zip \
         opcache \
+        dom \
+        xml \
+        xmlwriter \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
