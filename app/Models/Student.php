@@ -48,4 +48,9 @@ class Student extends Authenticatable
     {
         return $this->hasMany(VehicleRequest::class, 'student_id');
     }
+
+    public function chatConversations(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(ChatConversation::class, 'student_id');
+    }
 }
