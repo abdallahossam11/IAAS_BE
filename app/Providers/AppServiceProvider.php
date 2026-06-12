@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Contracts\StudentAiChatClientContract;
 use App\Models\Admin;
 use App\Models\Faculty;
 use App\Models\Student;
@@ -10,6 +11,7 @@ use App\Policies\AdminPolicy;
 use App\Policies\FacultyPolicy;
 use App\Policies\StudentPolicy;
 use App\Policies\VehicleRequestPolicy;
+use App\Services\Ai\FakeStudentAiChatClient;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 
@@ -20,7 +22,12 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->app->singleton(StudentAiChatClientContract::class, function () {
+            return match (config('chat.ai_driver', 'fake')) {
+                'fake'  => new FakeStudentAiChatClient(),
+                default => throw new \LogicException('Only the fake student AI client is available in Phase 3.'),
+            };
+        });
     }
 
     /**

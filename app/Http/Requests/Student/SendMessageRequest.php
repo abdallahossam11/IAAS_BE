@@ -1,0 +1,21 @@
+<?php
+
+namespace App\Http\Requests\Student;
+
+use Illuminate\Foundation\Http\FormRequest;
+
+class SendMessageRequest extends FormRequest
+{
+    public function authorize(): bool
+    {
+        return true;
+    }
+
+    public function rules(): array
+    {
+        return [
+            'message'           => ['required', 'string', 'max:' . config('chat.max_message_length', 4000)],
+            'client_message_id' => ['required', 'uuid'],
+        ];
+    }
+}

@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\V1\Student\AuthController;
+use App\Http\Controllers\Api\V1\Student\ChatController;
 use App\Http\Controllers\Api\V1\Student\ProfileController;
 use App\Http\Controllers\Api\V1\Student\VehicleController;
 use Illuminate\Support\Facades\Route;
@@ -23,6 +24,17 @@ Route::prefix('v1/student')->group(function () {
         Route::get('/vehicle', [VehicleController::class, 'state']);
         Route::post('/vehicle-requests', [VehicleController::class, 'store']);
         Route::get('/vehicle-requests/history', [VehicleController::class, 'history']);
+
+        Route::prefix('chats')->group(function () {
+            Route::post('',                                         [ChatController::class, 'store']);
+            Route::get('',                                          [ChatController::class, 'index']);
+            Route::get('{chatUuid}',                                [ChatController::class, 'show']);
+            Route::patch('{chatUuid}',                              [ChatController::class, 'update']);
+            Route::delete('{chatUuid}',                             [ChatController::class, 'destroy']);
+            Route::post('{chatUuid}/messages',                      [ChatController::class, 'sendMessage']);
+            Route::get('{chatUuid}/messages/{messageUuid}/status',  [ChatController::class, 'messageStatus']);
+            Route::post('{chatUuid}/messages/{messageUuid}/retry',  [ChatController::class, 'retryMessage']);
+        });
     });
 });
 
