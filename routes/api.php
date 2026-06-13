@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\V1\Guest\GuestChatController;
 use App\Http\Controllers\Api\V1\Student\AuthController;
 use App\Http\Controllers\Api\V1\Student\ChatController;
 use App\Http\Controllers\Api\V1\Student\ProfileController;
@@ -46,4 +47,17 @@ Route::prefix('v1/student')->group(function () {
 
 Route::prefix('v1/gate')->middleware('ensure.gate')->group(function () {
     Route::post('/vehicle-access/check', [\App\Http\Controllers\Api\V1\Gate\VehicleAccessController::class, 'check'])->middleware('throttle:60,1');
+});
+
+/*
+|--------------------------------------------------------------------------
+| Guest Chat API Routes — v1
+|--------------------------------------------------------------------------
+*/
+
+Route::prefix('v1/guest/chat')->group(function () {
+    Route::post('messages', [GuestChatController::class, 'send'])
+        ->middleware('throttle:guest-chat-submit');
+    Route::get('messages/{requestId}/status', [GuestChatController::class, 'status']);
+    Route::get('history', [GuestChatController::class, 'history']);
 });
