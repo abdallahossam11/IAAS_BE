@@ -1,0 +1,555 @@
+openapi: 3.1.0
+
+info:
+  title: AI Chat API Contract
+  version: "1.0"
+  description: >
+    Server-to-server contract between the Laravel backend and the AI team's HTTP service for the
+    chatbot V1 feature. Two separate APIs (student and guest), each with its own full endpoint URL
+    and its own Bearer service token. Synchronous request/response only — no callbacks, webhooks,
+    or streaming in V1. The AI service never accesses the project database and is never called
+    directly by the frontend.
+
+    Authoritative human-readable contract: ai-chat-api-contract-v1.md.
+
+    NOTE: schema_version and X-Request-ID are frozen by this contract but are NOT yet emitted by
+    the current Laravel code. Phase 5B adds them along with the real HTTP clients. This spec
+    describes the frozen target, not the current runtime behavior.
+
+servers:
+  - url: https://student-ai.example.invalid
+    description: >
+      Documentation-only placeholder base origin. This is not the complete value stored in
+      STUDENT_AI_API_URL. Laravel stores the final complete callable student endpoint URL.
+      No real domain is implied.
+  - url: https://guest-ai.example.invalid
+    description: >
+      Documentation-only placeholder base origin. This is not the complete value stored in
+      GUEST_AI_API_URL. Laravel stores the final complete callable guest endpoint URL.
+      No real domain is implied.
+
+tags:
+  - name: student
+    description: Authenticated-student chat responder.
+  - name: guest
+    description: Anonymous-guest chat responder.
+  - name: health
+    description: Service health probe.
+
+security:
+  - bearerAuth: []
+
+paths:
+  /v1/chat/student/respond:
+    post:
+      tags: [student]
+      summary: Generate an AI response for an authenticated student chat turn.
+      operationId: respondStudent
+      description: >
+        Recommended path for the student responder. The Laravel backend posts to the full URL
+        configured in STUDENT_AI_API_URL and does not append paths automatically.
+      parameters:
+        - $ref: '#/components/parameters/XRequestId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StudentRequest'
+            examples:
+              english:
+                summary: English student question
+                value:
+                  schema_version: "1.0"
+                  request_id: "0b9c4f2e-1d3a-4f8b-9c2e-7a1b2c3d4e5f"
+                  conversation_id: "f1e2d3c4-b5a6-4789-90ab-cdef01234567"
+                  user_reference: "student:221101715"
+                  language: "auto"
+                  messages:
+                    - role: "user"
+                      content: "How many credits do I have left to graduate?"
+                  student_context:
+                    student_id: "221101715"
+                    full_name: "Student Name"
+                    email: "student@example.com"
+                    faculty_id: 1
+                    faculty_name: "Computer Science"
+                    gpa: 3.2
+                    credits_completed: 90
+                    credits_required: 144
+              arabic_utf8:
+                summary: UTF-8 Arabic student question with null faculty_name
+                value:
+                  schema_version: "1.0"
+                  request_id: "9f8e7d6c-5b4a-4321-8765-0fedcba98765"
+                  conversation_id: "11112222-3333-4444-5555-666677778888"
+                  user_reference: "student:221101716"
+                  language: "auto"
+                  messages:
+                    - role: "user"
+                      content: "كم عدد الساعات المتبقية لتخرّجي؟"
+                  student_context:
+                    student_id: "221101716"
+                    full_name: "اسم الطالب"
+                    email: "student2@example.com"
+                    faculty_id: 2
+                    faculty_name: null
+                    gpa: 2.85
+                    credits_completed: 60
+                    credits_required: 132
+      responses:
+        '200':
+          $ref: '#/components/responses/Success'
+        '400':
+          $ref: '#/components/responses/InvalidRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '409':
+          $ref: '#/components/responses/RequestIdConflict'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/InternalError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+        '504':
+          $ref: '#/components/responses/AiTimeout'
+
+  /v1/chat/guest/respond:
+    post:
+      tags: [guest]
+      summary: Generate an AI response for an anonymous guest chat turn.
+      operationId: respondGuest
+      description: >
+        Recommended path for the guest responder. The Laravel backend posts to the full URL
+        configured in GUEST_AI_API_URL and does not append paths automatically.
+      parameters:
+        - $ref: '#/components/parameters/XRequestId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GuestRequest'
+            examples:
+              english:
+                summary: English guest question
+                value:
+                  schema_version: "1.0"
+                  request_id: "7c6b5a49-3827-4655-9342-1f0e2d3c4b5a"
+                  guest_session_reference: "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08"
+                  language: "auto"
+                  messages:
+                    - role: "user"
+                      content: "What programs does the university offer?"
+              arabic_utf8:
+                summary: UTF-8 Arabic guest question
+                value:
+                  schema_version: "1.0"
+                  request_id: "2b3c4d5e-6f70-4811-9223-334455667788"
+                  guest_session_reference: "2c26b46b68ffc68ff99b453c1d30413413422d706483bfa0f98a5e886266e7ae"
+                  language: "auto"
+                  messages:
+                    - role: "user"
+                      content: "ما البرامج التي تقدّمها الجامعة؟"
+      responses:
+        '200':
+          $ref: '#/components/responses/Success'
+        '400':
+          $ref: '#/components/responses/InvalidRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '409':
+          $ref: '#/components/responses/RequestIdConflict'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/InternalError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+        '504':
+          $ref: '#/components/responses/AiTimeout'
+
+  /health:
+    get:
+      tags: [health]
+      summary: Service health probe.
+      operationId: health
+      description: >
+        Minimal liveness probe. No authentication required unless AI-team infrastructure policy
+        requires it. Must not expose versions, secrets, stack traces, model paths, or internal
+        configuration.
+      security: []
+      responses:
+        '200':
+          description: Service is healthy.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+              example:
+                status: "ok"
+
+components:
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: >
+        Separate static service tokens per side (STUDENT_AI_API_TOKEN, GUEST_AI_API_TOKEN),
+        independently revocable, stored only in environment variables, never logged.
+
+  parameters:
+    XRequestId:
+      name: X-Request-ID
+      in: header
+      required: true
+      description: >
+        UUID identical to the JSON body request_id. The AI service should reject requests where
+        the header and body identifiers disagree (400 INVALID_REQUEST).
+      schema:
+        type: string
+        format: uuid
+
+  headers:
+    RetryAfter:
+      description: Number of seconds the caller should wait before retrying.
+      required: false
+      schema:
+        type: integer
+        minimum: 0
+
+  schemas:
+
+    Message:
+      type: object
+      additionalProperties: false
+      required: [role, content]
+      properties:
+        role:
+          type: string
+          enum: [user, assistant]
+        content:
+          type: string
+          minLength: 1
+          pattern: '\S'
+          description: Non-empty after trimming whitespace (must contain a non-whitespace character).
+
+    StudentContext:
+      type: object
+      additionalProperties: false
+      required:
+        - student_id
+        - full_name
+        - email
+        - faculty_id
+        - faculty_name
+        - gpa
+        - credits_completed
+        - credits_required
+      properties:
+        student_id:
+          type: string
+        full_name:
+          type: string
+        email:
+          type: string
+          format: email
+        faculty_id:
+          type: integer
+        faculty_name:
+          type: [string, "null"]
+          description: May be null when the student's faculty relationship is absent.
+        gpa:
+          type: number
+          description: Numeric GPA (float).
+        credits_completed:
+          type: integer
+        credits_required:
+          type: integer
+
+    StudentRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - schema_version
+        - request_id
+        - conversation_id
+        - user_reference
+        - language
+        - messages
+        - student_context
+      properties:
+        schema_version:
+          type: string
+          const: "1.0"
+        request_id:
+          type: string
+          format: uuid
+        conversation_id:
+          type: string
+          format: uuid
+        user_reference:
+          type: string
+          pattern: '^student:.+$'
+        language:
+          type: string
+          const: "auto"
+        messages:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/Message'
+        student_context:
+          $ref: '#/components/schemas/StudentContext'
+
+    GuestRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - schema_version
+        - request_id
+        - guest_session_reference
+        - language
+        - messages
+      properties:
+        schema_version:
+          type: string
+          const: "1.0"
+        request_id:
+          type: string
+          format: uuid
+        guest_session_reference:
+          type: string
+          pattern: '^[a-f0-9]{64}$'
+          description: Lowercase SHA-256 hex of the opaque guest token. Raw token is never sent.
+        language:
+          type: string
+          const: "auto"
+        messages:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/Message'
+
+    SuccessResponse:
+      type: object
+      additionalProperties: false
+      required: [schema_version, request_id, status, content]
+      properties:
+        schema_version:
+          type: string
+          const: "1.0"
+        request_id:
+          type: string
+          format: uuid
+          description: Must match the incoming request_id.
+        status:
+          type: string
+          const: "completed"
+        content:
+          type: string
+          minLength: 1
+          pattern: '\S'
+          description: Non-empty after trimming whitespace (must contain a non-whitespace character).
+
+    ErrorObject:
+      type: object
+      additionalProperties: false
+      required: [code, message, retryable]
+      properties:
+        code:
+          type: string
+          enum:
+            - INVALID_REQUEST
+            - UNAUTHORIZED
+            - REQUEST_ID_CONFLICT
+            - VALIDATION_ERROR
+            - RATE_LIMITED
+            - INTERNAL_ERROR
+            - SERVICE_UNAVAILABLE
+            - AI_TIMEOUT
+        message:
+          type: string
+          minLength: 1
+          pattern: '\S'
+          description: >
+            Safe, human-readable summary (must contain a non-whitespace character). Must never
+            contain stack traces, database errors, file paths, secret tokens, raw prompts, or
+            model paths.
+        retryable:
+          type: boolean
+          description: Advisory metadata. Current Laravel jobs use tries=1 (no automatic retry).
+
+    ErrorResponse:
+      type: object
+      additionalProperties: false
+      required: [schema_version, request_id, error]
+      properties:
+        schema_version:
+          type: string
+          const: "1.0"
+        request_id:
+          type: [string, "null"]
+          format: uuid
+          description: >
+            Echoes the incoming request_id. May be null only when the request identifier cannot
+            be recovered.
+        error:
+          $ref: '#/components/schemas/ErrorObject'
+
+    HealthResponse:
+      type: object
+      additionalProperties: false
+      required: [status]
+      properties:
+        status:
+          type: string
+          const: "ok"
+
+  responses:
+
+    Success:
+      description: Completed AI response.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/SuccessResponse'
+          examples:
+            english:
+              summary: Completed English response
+              value:
+                schema_version: "1.0"
+                request_id: "0b9c4f2e-1d3a-4f8b-9c2e-7a1b2c3d4e5f"
+                status: "completed"
+                content: "You have completed 90 of 144 required credits, so 54 remain."
+            arabic_utf8:
+              summary: Completed UTF-8 Arabic response
+              value:
+                schema_version: "1.0"
+                request_id: "9f8e7d6c-5b4a-4321-8765-0fedcba98765"
+                status: "completed"
+                content: "أكملت 60 ساعة من أصل 132 ساعة مطلوبة، فتبقّى لديك 72 ساعة."
+
+    InvalidRequest:
+      description: Malformed request, unexpected field, or X-Request-ID/body mismatch.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            schema_version: "1.0"
+            request_id: "0b9c4f2e-1d3a-4f8b-9c2e-7a1b2c3d4e5f"
+            error:
+              code: INVALID_REQUEST
+              message: "The request body is malformed or contains unexpected fields."
+              retryable: false
+
+    Unauthorized:
+      description: Missing or invalid Bearer token.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            schema_version: "1.0"
+            request_id: null
+            error:
+              code: UNAUTHORIZED
+              message: "Authentication failed."
+              retryable: false
+
+    RequestIdConflict:
+      description: Same request_id reused with a different normalized payload.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            schema_version: "1.0"
+            request_id: "0b9c4f2e-1d3a-4f8b-9c2e-7a1b2c3d4e5f"
+            error:
+              code: REQUEST_ID_CONFLICT
+              message: "This request_id was already used with a different payload."
+              retryable: false
+
+    ValidationError:
+      description: Request shape valid but field values failed validation.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            schema_version: "1.0"
+            request_id: "0b9c4f2e-1d3a-4f8b-9c2e-7a1b2c3d4e5f"
+            error:
+              code: VALIDATION_ERROR
+              message: "One or more fields failed validation."
+              retryable: false
+
+    RateLimited:
+      description: Too many requests.
+      headers:
+        Retry-After:
+          $ref: '#/components/headers/RetryAfter'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            schema_version: "1.0"
+            request_id: "0b9c4f2e-1d3a-4f8b-9c2e-7a1b2c3d4e5f"
+            error:
+              code: RATE_LIMITED
+              message: "Rate limit exceeded. Retry later."
+              retryable: true
+
+    InternalError:
+      description: Unexpected server error. Not retryable unless explicitly documented.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            schema_version: "1.0"
+            request_id: "0b9c4f2e-1d3a-4f8b-9c2e-7a1b2c3d4e5f"
+            error:
+              code: INTERNAL_ERROR
+              message: "An internal error occurred."
+              retryable: false
+
+    ServiceUnavailable:
+      description: Service temporarily unavailable.
+      headers:
+        Retry-After:
+          $ref: '#/components/headers/RetryAfter'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            schema_version: "1.0"
+            request_id: "0b9c4f2e-1d3a-4f8b-9c2e-7a1b2c3d4e5f"
+            error:
+              code: SERVICE_UNAVAILABLE
+              message: "The AI service is temporarily unavailable."
+              retryable: true
+
+    AiTimeout:
+      description: AI processing exceeded the service's internal time budget.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            schema_version: "1.0"
+            request_id: "0b9c4f2e-1d3a-4f8b-9c2e-7a1b2c3d4e5f"
+            error:
+              code: AI_TIMEOUT
+              message: "The AI service timed out before producing a response."
+              retryable: true
