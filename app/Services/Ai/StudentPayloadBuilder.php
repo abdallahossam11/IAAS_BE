@@ -28,6 +28,7 @@ class StudentPayloadBuilder
             ->toArray();
 
         return [
+            'schema_version'  => '1.0',
             'request_id'      => $this->aiRequest->uuid,
             'conversation_id' => $conversation->uuid,
             'user_reference'  => 'student:' . $student->student_id,

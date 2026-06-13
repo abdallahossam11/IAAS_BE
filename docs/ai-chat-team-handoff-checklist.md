@@ -85,16 +85,21 @@ These are not yet frozen and require AI-team input (mirrors §16 of the contract
 
 ---
 
-## Laravel-Side Readiness (Phase 5B — not part of this handoff)
+## Laravel-Side Readiness (Phase 5B — Complete)
 
-For transparency, the Laravel side is **not yet wired** to call a real service. Before production
-integration, Phase 5B must:
+Phase 5B is **implemented**. The following items are done:
 
-- [ ] add `schema_version` to `StudentPayloadBuilder` and `GuestPayloadBuilder`
-- [ ] create `HttpStudentAiChatClient` and `HttpGuestAiChatClient`
-- [ ] send `X-Request-ID` equal to the body `request_id`
-- [ ] validate success envelopes (schema_version, request_id match, status, non-empty content)
-- [ ] validate error envelopes and map to safe `AiClientException` values
-- [ ] switch `AI_CHAT_DRIVER` from `fake` to the real driver in the target environment
+- [x] `schema_version: "1.0"` added to `StudentPayloadBuilder` and `GuestPayloadBuilder`
+- [x] `HttpStudentAiChatClient` and `HttpGuestAiChatClient` created
+- [x] `X-Request-ID` sent equal to the body `request_id` on every outbound request
+- [x] Success envelopes validated (schema_version, request_id match, status:"completed", trimmed non-empty content)
+- [x] Error envelopes validated and mapped to safe `AiClientException` values (local safe messages only; remote text never persisted)
+- [x] Strict outbound payload validation (`AiOutboundPayloadValidator`) before any network call
+- [x] `AiHttpTransport` with explicit charset, `withoutRedirecting()`, URL/token guard, HTTPS enforcement
 
-Phase 5B is **not** implemented at the time of this handoff document.
+**Still pending (requires coordination with AI team):**
+
+- [ ] Set real values for `STUDENT_AI_API_URL`, `STUDENT_AI_API_TOKEN`, `GUEST_AI_API_URL`, `GUEST_AI_API_TOKEN` in the target environment
+- [ ] Switch `AI_CHAT_DRIVER` from `fake` to `http` in the target environment
+- [ ] Joint integration testing against the running AI-team service
+- [ ] Real timeout behaviour verified end-to-end (integration-test item)

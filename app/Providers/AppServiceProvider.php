@@ -13,8 +13,14 @@ use App\Policies\AdminPolicy;
 use App\Policies\FacultyPolicy;
 use App\Policies\StudentPolicy;
 use App\Policies\VehicleRequestPolicy;
+use App\Services\Ai\AiHttpErrorMapper;
+use App\Services\Ai\AiHttpResponseValidator;
+use App\Services\Ai\AiHttpTransport;
+use App\Services\Ai\AiOutboundPayloadValidator;
 use App\Services\Ai\FakeGuestAiChatClient;
 use App\Services\Ai\FakeStudentAiChatClient;
+use App\Services\Ai\HttpGuestAiChatClient;
+use App\Services\Ai\HttpStudentAiChatClient;
 use App\Services\Chat\InMemoryGuestChatStore;
 use App\Services\Chat\RedisGuestChatStore;
 use Illuminate\Cache\RateLimiting\Limit;
@@ -30,17 +36,42 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        $this->app->singleton(StudentAiChatClientContract::class, function () {
+        $this->app->singleton(AiHttpErrorMapper::class, fn () => new AiHttpErrorMapper());
+
+        $this->app->singleton(
+            AiHttpResponseValidator::class,
+            fn ($app) => new AiHttpResponseValidator($app->make(AiHttpErrorMapper::class)),
+        );
+
+        $this->app->singleton(AiOutboundPayloadValidator::class, fn () => new AiOutboundPayloadValidator());
+
+        $this->app->singleton(AiHttpTransport::class, fn () => new AiHttpTransport());
+
+        $this->app->singleton(StudentAiChatClientContract::class, function ($app) {
             return match (config('chat.ai_driver', 'fake')) {
                 'fake'  => new FakeStudentAiChatClient(),
-                default => throw new \LogicException('Only the fake student AI client is available in Phase 3.'),
+                'http'  => new HttpStudentAiChatClient(
+                    $app->make(AiHttpTransport::class),
+                    $app->make(AiOutboundPayloadValidator::class),
+                    $app->make(AiHttpResponseValidator::class),
+                ),
+                default => throw new \LogicException(
+                    'Unsupported AI_CHAT_DRIVER: ' . config('chat.ai_driver'),
+                ),
             };
         });
 
-        $this->app->singleton(GuestAiChatClientContract::class, function () {
+        $this->app->singleton(GuestAiChatClientContract::class, function ($app) {
             return match (config('chat.ai_driver', 'fake')) {
                 'fake'  => new FakeGuestAiChatClient(),
-                default => throw new \LogicException('Only the fake guest AI client is available in Phase 4.'),
+                'http'  => new HttpGuestAiChatClient(
+                    $app->make(AiHttpTransport::class),
+                    $app->make(AiOutboundPayloadValidator::class),
+                    $app->make(AiHttpResponseValidator::class),
+                ),
+                default => throw new \LogicException(
+                    'Unsupported AI_CHAT_DRIVER: ' . config('chat.ai_driver'),
+                ),
             };
         });
 

@@ -20,6 +20,7 @@ class GuestPayloadBuilder
         }
 
         return [
+            'schema_version'          => '1.0',
             'request_id'              => $requestId,
             'guest_session_reference' => $tokenHash,
             'language'                => 'auto',

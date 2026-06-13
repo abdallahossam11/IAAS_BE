@@ -1,0 +1,302 @@
+<?php
+
+namespace Tests\Unit;
+
+use App\Exceptions\AiClientException;
+use App\Services\Ai\AiHttpErrorMapper;
+use App\Services\Ai\AiHttpResponseValidator;
+use App\Services\Ai\AiHttpTransport;
+use App\Services\Ai\AiOutboundPayloadValidator;
+use App\Services\Ai\HttpGuestAiChatClient;
+use Illuminate\Http\Client\Request;
+use Illuminate\Support\Facades\Http;
+use Tests\TestCase;
+
+/**
+ * Tests for HttpGuestAiChatClient.
+ *
+ * All HTTP calls are mocked — no real network requests occur.
+ */
+class HttpGuestAiChatClientTest extends TestCase
+{
+    private const GUEST_URL    = 'https://guest-ai.test/v1/chat/guest/respond';
+    private const GUEST_TOKEN  = 'guest-bearer-token';
+    private const STUDENT_URL  = 'https://student-ai.test/v1/chat/student/respond';
+    private const STUDENT_TOKEN = 'student-bearer-token';
+    private const REQUEST_ID   = 'aabbccdd-0011-2233-4455-667788990000';
+    private const GUEST_REF    = '9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08';
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        Http::preventStrayRequests();
+
+        config([
+            'chat.guest_ai.url'     => self::GUEST_URL,
+            'chat.guest_ai.token'   => self::GUEST_TOKEN,
+            'chat.student_ai.url'   => self::STUDENT_URL,
+            'chat.student_ai.token' => self::STUDENT_TOKEN,
+        ]);
+    }
+
+    private function makeClient(): HttpGuestAiChatClient
+    {
+        return new HttpGuestAiChatClient(
+            new AiHttpTransport(),
+            new AiOutboundPayloadValidator(),
+            new AiHttpResponseValidator(new AiHttpErrorMapper()),
+        );
+    }
+
+    private function validPayload(string $requestId = self::REQUEST_ID): array
+    {
+        return [
+            'schema_version'          => '1.0',
+            'request_id'              => $requestId,
+            'guest_session_reference' => self::GUEST_REF,
+            'language'                => 'auto',
+            'messages'                => [['role' => 'user', 'content' => 'Hello guest']],
+        ];
+    }
+
+    private function successBody(string $requestId = self::REQUEST_ID): array
+    {
+        return [
+            'schema_version' => '1.0',
+            'request_id'     => $requestId,
+            'status'         => 'completed',
+            'content'        => 'Guest AI answer.',
+        ];
+    }
+
+    // ── Uses guest URL from config (full URL, no path appended) ──────────────
+
+    public function test_uses_guest_url_from_config(): void
+    {
+        Http::fake([self::GUEST_URL => Http::response($this->successBody(), 200)]);
+
+        $this->makeClient()->send($this->validPayload());
+
+        Http::assertSent(fn (Request $req) => $req->url() === self::GUEST_URL);
+    }
+
+    public function test_does_not_use_student_url(): void
+    {
+        Http::fake([self::GUEST_URL => Http::response($this->successBody(), 200)]);
+
+        $this->makeClient()->send($this->validPayload());
+
+        Http::assertNotSent(fn (Request $req) => $req->url() === self::STUDENT_URL);
+    }
+
+    // ── Uses guest Bearer token (not student token) ───────────────────────────
+
+    public function test_guest_bearer_token_is_sent(): void
+    {
+        Http::fake([self::GUEST_URL => Http::response($this->successBody(), 200)]);
+
+        $this->makeClient()->send($this->validPayload());
+
+        Http::assertSent(fn (Request $req) =>
+            $req->header('Authorization')[0] === 'Bearer ' . self::GUEST_TOKEN
+        );
+    }
+
+    public function test_student_bearer_token_is_not_used(): void
+    {
+        Http::fake([self::GUEST_URL => Http::response($this->successBody(), 200)]);
+
+        $this->makeClient()->send($this->validPayload());
+
+        Http::assertSent(fn (Request $req) =>
+            $req->header('Authorization')[0] !== 'Bearer ' . self::STUDENT_TOKEN
+        );
+    }
+
+    // ── X-Request-ID == body request_id ──────────────────────────────────────
+
+    public function test_x_request_id_equals_body_request_id(): void
+    {
+        Http::fake([self::GUEST_URL => Http::response($this->successBody(), 200)]);
+
+        $this->makeClient()->send($this->validPayload());
+
+        Http::assertSent(fn (Request $req) =>
+            $req->header('X-Request-ID')[0] === self::REQUEST_ID
+        );
+    }
+
+    // ── Content-Type with charset ─────────────────────────────────────────────
+
+    public function test_content_type_includes_charset(): void
+    {
+        Http::fake([self::GUEST_URL => Http::response($this->successBody(), 200)]);
+
+        $this->makeClient()->send($this->validPayload());
+
+        Http::assertSent(fn (Request $req) =>
+            str_contains(
+                implode('', $req->header('Content-Type')),
+                'application/json; charset=utf-8',
+            )
+        );
+    }
+
+    // ── Invalid payload → no HTTP request sent ────────────────────────────────
+
+    public function test_invalid_outbound_payload_sends_no_http_request(): void
+    {
+        $payload = $this->validPayload();
+        unset($payload['schema_version']); // trigger outbound validation failure
+
+        try {
+            $this->makeClient()->send($payload);
+        } catch (AiClientException $e) {
+            $this->assertSame('AI_CONFIGURATION_ERROR', $e->errorCode);
+        }
+
+        Http::assertNothingSent();
+    }
+
+    // ── Valid response returned as ['content' => ...] ─────────────────────────
+
+    public function test_valid_200_response_returns_content(): void
+    {
+        Http::fake([self::GUEST_URL => Http::response($this->successBody(), 200)]);
+
+        $result = $this->makeClient()->send($this->validPayload());
+
+        $this->assertSame(['content' => 'Guest AI answer.'], $result);
+    }
+
+    // ── Error responses mapped to correct codes ───────────────────────────────
+
+    public function test_429_response_throws_ai_rate_limited(): void
+    {
+        Http::fake([self::GUEST_URL => Http::response([
+            'schema_version' => '1.0',
+            'request_id'     => self::REQUEST_ID,
+            'error'          => ['code' => 'RATE_LIMITED', 'message' => 'Slow down.', 'retryable' => true],
+        ], 429)]);
+
+        try {
+            $this->makeClient()->send($this->validPayload());
+            $this->fail('Expected AiClientException');
+        } catch (AiClientException $e) {
+            $this->assertSame('AI_RATE_LIMITED', $e->errorCode);
+        }
+    }
+
+    // ── 3xx not followed, treated as INVALID_AI_RESPONSE ─────────────────────
+
+    public function test_redirect_response_treated_as_invalid(): void
+    {
+        Http::fake([self::GUEST_URL => Http::response('', 301, ['Location' => 'https://other.example.com'])]);
+
+        try {
+            $this->makeClient()->send($this->validPayload());
+            $this->fail('Expected AiClientException');
+        } catch (AiClientException $e) {
+            $this->assertSame('INVALID_AI_RESPONSE', $e->errorCode);
+        }
+    }
+
+    // ── Connection failure propagated safely ──────────────────────────────────
+
+    public function test_connection_failure_throws_ai_client_exception(): void
+    {
+        Http::fake([self::GUEST_URL => Http::failedConnection()]);
+
+        try {
+            $this->makeClient()->send($this->validPayload());
+            $this->fail('Expected AiClientException');
+        } catch (AiClientException $e) {
+            $this->assertContains($e->errorCode, ['AI_CONNECTION_ERROR', 'TIMEOUT']);
+        }
+    }
+
+    // ── 201/202/204 all rejected ──────────────────────────────────────────────
+
+    /** @dataProvider unexpectedSuccessStatusProvider */
+    public function test_unexpected_2xx_status_throws_invalid_response(int $status): void
+    {
+        Http::fake([self::GUEST_URL => Http::response($this->successBody(), $status)]);
+
+        try {
+            $this->makeClient()->send($this->validPayload());
+            $this->fail('Expected AiClientException');
+        } catch (AiClientException $e) {
+            $this->assertSame('INVALID_AI_RESPONSE', $e->errorCode);
+        }
+    }
+
+    public static function unexpectedSuccessStatusProvider(): array
+    {
+        return [
+            'HTTP 201' => [201],
+            'HTTP 202' => [202],
+            'HTTP 204' => [204],
+        ];
+    }
+
+    // ── 404 / 502 rejected ────────────────────────────────────────────────────
+
+    public function test_404_throws_invalid_response(): void
+    {
+        Http::fake([self::GUEST_URL => Http::response('Not Found', 404)]);
+
+        try {
+            $this->makeClient()->send($this->validPayload());
+            $this->fail('Expected AiClientException');
+        } catch (AiClientException $e) {
+            $this->assertSame('INVALID_AI_RESPONSE', $e->errorCode);
+        }
+    }
+
+    public function test_502_throws_invalid_response(): void
+    {
+        Http::fake([self::GUEST_URL => Http::response('Bad Gateway', 502)]);
+
+        try {
+            $this->makeClient()->send($this->validPayload());
+            $this->fail('Expected AiClientException');
+        } catch (AiClientException $e) {
+            $this->assertSame('INVALID_AI_RESPONSE', $e->errorCode);
+        }
+    }
+
+    // ── Driver regression: fake client still resolves when driver=fake ────────
+
+    public function test_fake_driver_still_resolves_with_fake_client(): void
+    {
+        config(['chat.ai_driver' => 'fake']);
+
+        $client = app(\App\Contracts\GuestAiChatClientContract::class);
+
+        $this->assertInstanceOf(\App\Services\Ai\FakeGuestAiChatClient::class, $client);
+    }
+
+    // ── Driver: http resolves the real HTTP client ─────────────────────────────
+
+    public function test_http_driver_resolves_http_guest_client(): void
+    {
+        config(['chat.ai_driver' => 'http']);
+        $this->app->forgetInstance(\App\Contracts\GuestAiChatClientContract::class);
+
+        $client = app(\App\Contracts\GuestAiChatClientContract::class);
+
+        $this->assertInstanceOf(HttpGuestAiChatClient::class, $client);
+    }
+
+    // ── Unsupported driver throws LogicException ──────────────────────────────
+
+    public function test_unsupported_driver_throws_logic_exception(): void
+    {
+        config(['chat.ai_driver' => 'unsupported_value']);
+        $this->app->forgetInstance(\App\Contracts\GuestAiChatClientContract::class);
+
+        $this->expectException(\LogicException::class);
+
+        app(\App\Contracts\GuestAiChatClientContract::class);
+    }
+}

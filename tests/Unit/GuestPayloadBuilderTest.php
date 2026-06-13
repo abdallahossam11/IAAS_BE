@@ -128,10 +128,18 @@ class GuestPayloadBuilderTest extends TestCase
         }
     }
 
+    public function test_schema_version_is_1_0(): void
+    {
+        $payload = (new GuestPayloadBuilder())->build($this->requestId, $this->tokenHash, []);
+
+        $this->assertSame('1.0', $payload['schema_version']);
+    }
+
     public function test_top_level_payload_keys(): void
     {
         $payload = (new GuestPayloadBuilder())->build($this->requestId, $this->tokenHash, []);
 
+        $this->assertArrayHasKey('schema_version',          $payload);
         $this->assertArrayHasKey('request_id',              $payload);
         $this->assertArrayHasKey('guest_session_reference', $payload);
         $this->assertArrayHasKey('language',                $payload);

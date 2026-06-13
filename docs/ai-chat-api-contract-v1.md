@@ -468,48 +468,45 @@ Rules:
 
 ---
 
-## 15. Current-Code Gap (Honest Disclosure)
+## 15. Laravel-Side Implementation Status (Phase 5B — Complete)
 
-This contract is frozen, but parts of it are **not yet implemented in the Laravel codebase**:
+Phase 5B is **implemented**. The following items are done:
 
-- **`schema_version` is frozen by the contract but is not emitted by the current payload builders
-  yet.** `StudentPayloadBuilder` and `GuestPayloadBuilder` do not currently include it.
-- **`X-Request-ID` is frozen by the contract but is not sent yet**, because the real HTTP clients
-  do not exist. Today the system runs only `FakeStudentAiChatClient` and
-  `FakeGuestAiChatClient`.
+- **`schema_version: "1.0"` emitted** by both `StudentPayloadBuilder` and `GuestPayloadBuilder`.
+- **`X-Request-ID` sent** on every outbound request (header equals body `request_id`).
+- **`HttpStudentAiChatClient`** and **`HttpGuestAiChatClient`** created, bound via
+  `AI_CHAT_DRIVER=http`.
+- **Strict outbound validation** (`AiOutboundPayloadValidator`) — exact key sets, value types,
+  UUID/SHA-256 formats, trimmed non-empty content — enforced before any network call.
+- **Strict success-envelope validation** (`AiHttpResponseValidator`) — exact key set,
+  `schema_version`, `request_id` match, `status:"completed"`, trimmed non-empty `content`.
+- **Strict error-envelope validation and mapping** (`AiHttpErrorMapper`) — frozen HTTP ↔ code ↔
+  retryable table; local safe messages only; remote `error.message` is never persisted.
+- **`AiHttpTransport`** — explicit `Content-Type: application/json; charset=utf-8`,
+  `withoutRedirecting()`, URL/token guard (no credentials/fragment/query), HTTPS required outside
+  local/testing, `ConnectionException`-only transport failure handling.
 
-**Phase 5B will:**
+**Still pending (outside Phase 5B scope):**
 
-- add `schema_version` to both payload builders;
-- create `HttpStudentAiChatClient`;
-- create `HttpGuestAiChatClient`;
-- send `X-Request-ID`;
-- validate success envelopes;
-- validate error envelopes;
-- map AI-team errors to safe `AiClientException` values.
+- Real endpoint URLs and tokens require environment configuration (`STUDENT_AI_API_URL`,
+  `STUDENT_AI_API_TOKEN`, `GUEST_AI_API_URL`, `GUEST_AI_API_TOKEN`).
+- Joint integration testing against the AI-team service.
+- Real timeout behaviour remains an integration-test item — `Http::fake()` cannot reproduce
+  every cURL timeout condition.
 
-> Phase 5B is **not** implemented. This document does not claim otherwise. The contract is
-> published now so the AI team can build against a stable target in parallel.
+### Laravel internal error code mapping (implemented)
 
-### Reference: AI-team error code → Laravel internal mapping (non-binding, Phase 5B)
-
-This mapping is a **planning reference** for the future HTTP client, not part of the wire
-contract the AI team implements:
-
-| AI-team `error.code` | Likely Laravel `AiClientException` code (5B) |
-|---|---|
-| `INVALID_REQUEST` | `AI_ERROR` |
-| `UNAUTHORIZED` | `AI_ERROR` |
-| `REQUEST_ID_CONFLICT` | `AI_ERROR` |
-| `VALIDATION_ERROR` | `AI_ERROR` |
-| `RATE_LIMITED` | `AI_ERROR` |
-| `INTERNAL_ERROR` | `AI_ERROR` |
-| `SERVICE_UNAVAILABLE` | `AI_ERROR` |
-| `AI_TIMEOUT` | `TIMEOUT` |
-| invalid/malformed response shape | `INVALID_AI_RESPONSE` |
-
-The exact internal codes are finalized in Phase 5B; only `TIMEOUT` and `INVALID_AI_RESPONSE`
-already exist in the codebase with specific meaning.
+| HTTP | AI-team `error.code` | Laravel `AiClientException` code |
+|---|---|---|
+| 400 | `INVALID_REQUEST` | `AI_INVALID_REQUEST` |
+| 401 | `UNAUTHORIZED` | `AI_UNAUTHORIZED` |
+| 409 | `REQUEST_ID_CONFLICT` | `AI_REQUEST_ID_CONFLICT` |
+| 422 | `VALIDATION_ERROR` | `AI_VALIDATION_ERROR` |
+| 429 | `RATE_LIMITED` | `AI_RATE_LIMITED` |
+| 500 | `INTERNAL_ERROR` | `AI_INTERNAL_ERROR` |
+| 503 | `SERVICE_UNAVAILABLE` | `AI_SERVICE_UNAVAILABLE` |
+| 504 | `AI_TIMEOUT` | `TIMEOUT` |
+| any other status / malformed envelope | — | `INVALID_AI_RESPONSE` |
 
 ---
 

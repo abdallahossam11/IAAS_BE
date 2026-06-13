@@ -207,12 +207,22 @@ class StudentPayloadBuilderTest extends TestCase
         $this->assertArrayNotHasKey('tokens',         $payload['student_context']);
     }
 
+    public function test_schema_version_is_1_0(): void
+    {
+        ['aiRequest' => $aiRequest] = $this->makeFullCycle();
+
+        $payload = (new StudentPayloadBuilder($aiRequest))->build();
+
+        $this->assertSame('1.0', $payload['schema_version']);
+    }
+
     public function test_top_level_payload_keys_are_correct(): void
     {
         ['aiRequest' => $aiRequest] = $this->makeFullCycle();
 
         $payload = (new StudentPayloadBuilder($aiRequest))->build();
 
+        $this->assertArrayHasKey('schema_version',  $payload);
         $this->assertArrayHasKey('request_id',      $payload);
         $this->assertArrayHasKey('conversation_id', $payload);
         $this->assertArrayHasKey('user_reference',  $payload);
