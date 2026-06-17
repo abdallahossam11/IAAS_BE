@@ -2,25 +2,21 @@
 
 namespace App\Providers;
 
-use App\Contracts\GuestAiChatClientContract;
+use App\Contracts\AiChatClientContract;
 use App\Contracts\GuestChatStore;
-use App\Contracts\StudentAiChatClientContract;
 use App\Models\Admin;
+use App\Models\ChatConversation;
 use App\Models\Faculty;
 use App\Models\Student;
 use App\Models\VehicleRequest;
 use App\Policies\AdminPolicy;
+use App\Policies\ChatConversationPolicy;
 use App\Policies\FacultyPolicy;
 use App\Policies\StudentPolicy;
 use App\Policies\VehicleRequestPolicy;
-use App\Services\Ai\AiHttpErrorMapper;
-use App\Services\Ai\AiHttpResponseValidator;
 use App\Services\Ai\AiHttpTransport;
-use App\Services\Ai\AiOutboundPayloadValidator;
-use App\Services\Ai\FakeGuestAiChatClient;
-use App\Services\Ai\FakeStudentAiChatClient;
-use App\Services\Ai\HttpGuestAiChatClient;
-use App\Services\Ai\HttpStudentAiChatClient;
+use App\Services\Ai\FakeAiChatClient;
+use App\Services\Ai\HttpAiChatClient;
 use App\Services\Chat\InMemoryGuestChatStore;
 use App\Services\Chat\RedisGuestChatStore;
 use Illuminate\Cache\RateLimiting\Limit;
@@ -36,39 +32,14 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        $this->app->singleton(AiHttpErrorMapper::class, fn () => new AiHttpErrorMapper());
-
-        $this->app->singleton(
-            AiHttpResponseValidator::class,
-            fn ($app) => new AiHttpResponseValidator($app->make(AiHttpErrorMapper::class)),
-        );
-
-        $this->app->singleton(AiOutboundPayloadValidator::class, fn () => new AiOutboundPayloadValidator());
-
         $this->app->singleton(AiHttpTransport::class, fn () => new AiHttpTransport());
 
-        $this->app->singleton(StudentAiChatClientContract::class, function ($app) {
+        // Final AI contract client (Phase 9C). Drives both the student (9D) and
+        // guest (9E) queue flows.
+        $this->app->singleton(AiChatClientContract::class, function ($app) {
             return match (config('chat.ai_driver', 'fake')) {
-                'fake'  => new FakeStudentAiChatClient(),
-                'http'  => new HttpStudentAiChatClient(
-                    $app->make(AiHttpTransport::class),
-                    $app->make(AiOutboundPayloadValidator::class),
-                    $app->make(AiHttpResponseValidator::class),
-                ),
-                default => throw new \LogicException(
-                    'Unsupported AI_CHAT_DRIVER: ' . config('chat.ai_driver'),
-                ),
-            };
-        });
-
-        $this->app->singleton(GuestAiChatClientContract::class, function ($app) {
-            return match (config('chat.ai_driver', 'fake')) {
-                'fake'  => new FakeGuestAiChatClient(),
-                'http'  => new HttpGuestAiChatClient(
-                    $app->make(AiHttpTransport::class),
-                    $app->make(AiOutboundPayloadValidator::class),
-                    $app->make(AiHttpResponseValidator::class),
-                ),
+                'fake'  => new FakeAiChatClient(),
+                'http'  => new HttpAiChatClient($app->make(AiHttpTransport::class)),
                 default => throw new \LogicException(
                     'Unsupported AI_CHAT_DRIVER: ' . config('chat.ai_driver'),
                 ),
@@ -88,6 +59,7 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Gate::policy(Admin::class, AdminPolicy::class);
+        Gate::policy(ChatConversation::class, ChatConversationPolicy::class);
         Gate::policy(Faculty::class, FacultyPolicy::class);
         Gate::policy(Student::class, StudentPolicy::class);
         Gate::policy(VehicleRequest::class, VehicleRequestPolicy::class);

@@ -36,4 +36,12 @@ interface GuestChatStore
     public function rollbackSubmission(string $tokenHash, string $requestId): void;
 
     public function refreshHistoryTtl(string $tokenHash): void;
+
+    /**
+     * The AI-generated session id for this guest token (final AI contract).
+     * Distinct from the opaque backend guest token; null until the AI responds.
+     */
+    public function getAiSessionId(string $tokenHash): ?string;
+
+    public function setAiSessionId(string $tokenHash, string $sessionId): void;
 }

@@ -1,6 +1,7 @@
 {
   "info": {
-    "name": "Galala IAAS Student APIs",
+    "name": "Galala IAAS APIs (Full)",
+    "description": "Complete Galala IAAS API collection. Updated 2026-06-17 to include student chat and guest chat APIs. All APIs verified from routes/api.php and controllers.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "item": [
@@ -17,6 +18,7 @@
                   "var data = pm.response.json();",
                   "if (data.success && data.data && data.data.token) {",
                   "    pm.environment.set(\"token\", data.data.token);",
+                  "    console.log('Token saved to environment');",
                   "}"
                 ],
                 "type": "text/javascript"
@@ -26,31 +28,18 @@
           "request": {
             "method": "POST",
             "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              }
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
             ],
             "body": {
               "mode": "raw",
               "raw": "{\n    \"student_id\": \"YOUR_STUDENT_ID\",\n    \"password\": \"YOUR_PASSWORD\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
+              "options": { "raw": { "language": "json" } }
             },
             "url": {
               "raw": "{{base_url}}/api/v1/student/login",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "student",
-                "login"
-              ]
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "student", "login"]
             }
           }
         },
@@ -59,32 +48,14 @@
           "request": {
             "auth": {
               "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{token}}",
-                  "type": "string"
-                }
-              ]
+              "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
             },
             "method": "POST",
-            "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              }
-            ],
+            "header": [{ "key": "Accept", "value": "application/json" }],
             "url": {
               "raw": "{{base_url}}/api/v1/student/logout",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "student",
-                "logout"
-              ]
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "student", "logout"]
             }
           }
         }
@@ -98,32 +69,14 @@
           "request": {
             "auth": {
               "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{token}}",
-                  "type": "string"
-                }
-              ]
+              "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
             },
             "method": "GET",
-            "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              }
-            ],
+            "header": [{ "key": "Accept", "value": "application/json" }],
             "url": {
               "raw": "{{base_url}}/api/v1/student/profile",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "student",
-                "profile"
-              ]
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "student", "profile"]
             }
           }
         }
@@ -137,32 +90,14 @@
           "request": {
             "auth": {
               "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{token}}",
-                  "type": "string"
-                }
-              ]
+              "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
             },
             "method": "GET",
-            "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              }
-            ],
+            "header": [{ "key": "Accept", "value": "application/json" }],
             "url": {
               "raw": "{{base_url}}/api/v1/student/vehicle",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "student",
-                "vehicle"
-              ]
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "student", "vehicle"]
             }
           }
         },
@@ -171,41 +106,22 @@
           "request": {
             "auth": {
               "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{token}}",
-                  "type": "string"
-                }
-              ]
+              "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
             },
             "method": "POST",
             "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              }
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
             ],
             "body": {
               "mode": "raw",
               "raw": "{\n    \"vehicle_type\": \"Car\",\n    \"vehicle_model\": \"Toyota Corolla\",\n    \"vehicle_color\": \"White\",\n    \"plate_number\": \"ABC-123\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
+              "options": { "raw": { "language": "json" } }
             },
             "url": {
               "raw": "{{base_url}}/api/v1/student/vehicle-requests",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "student",
-                "vehicle-requests"
-              ]
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "student", "vehicle-requests"]
             }
           }
         },
@@ -214,81 +130,356 @@
           "request": {
             "auth": {
               "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{token}}",
-                  "type": "string"
-                }
-              ]
+              "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
             },
             "method": "GET",
-            "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              }
-            ],
+            "header": [{ "key": "Accept", "value": "application/json" }],
             "url": {
               "raw": "{{base_url}}/api/v1/student/vehicle-requests/history",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "student",
-                "vehicle-requests",
-                "history"
-              ]
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "student", "vehicle-requests", "history"]
             }
           }
         }
       ]
     },
     {
-      "name": "Gate",
+      "name": "Student Chat",
+      "description": "AI chatbot APIs for authenticated students. Requires Authorization: Bearer token. Uses polling — send a message (202), then poll status until completed/failed.",
       "item": [
         {
-          "name": "Gate Vehicle Access",
+          "name": "Create New Chat (First Message)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var data = pm.response.json();",
+                  "if (data.success && data.data) {",
+                  "    pm.environment.set('chat_uuid', data.data.chat.uuid);",
+                  "    pm.environment.set('assistant_msg_uuid', data.data.assistant_message.uuid);",
+                  "    console.log('chat_uuid:', data.data.chat.uuid);",
+                  "    console.log('assistant_msg_uuid:', data.data.assistant_message.uuid);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+            },
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"message\": \"Hello, what can you help me with?\",\n    \"client_message_id\": \"11111111-1111-1111-1111-111111111111\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/student/chats",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "student", "chats"]
+            },
+            "description": "Creates a new chat conversation and sends the first message. Returns 202 immediately. Poll the status endpoint for the AI response. client_message_id must be a unique UUID per message."
+          }
+        },
+        {
+          "name": "List Chats",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+            },
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": {
+              "raw": "{{base_url}}/api/v1/student/chats?page=1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "student", "chats"],
+              "query": [{ "key": "page", "value": "1" }]
+            },
+            "description": "Returns paginated list of the student's chat conversations (20 per page). Soft-deleted conversations are excluded."
+          }
+        },
+        {
+          "name": "Get Chat Detail (All Messages)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+            },
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": {
+              "raw": "{{base_url}}/api/v1/student/chats/{{chat_uuid}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "student", "chats", "{{chat_uuid}}"]
+            },
+            "description": "Returns the conversation metadata and all messages (user + assistant). assistant content is null while status is pending."
+          }
+        },
+        {
+          "name": "Send Follow-up Message",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var data = pm.response.json();",
+                  "if (data.success && data.data) {",
+                  "    pm.environment.set('assistant_msg_uuid', data.data.assistant_message.uuid);",
+                  "    console.log('New assistant_msg_uuid:', data.data.assistant_message.uuid);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+            },
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"message\": \"Tell me more about graduation requirements.\",\n    \"client_message_id\": \"22222222-2222-2222-2222-222222222222\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/student/chats/{{chat_uuid}}/messages",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "student", "chats", "{{chat_uuid}}", "messages"]
+            },
+            "description": "Send a follow-up message in an existing conversation. Returns 202. Use a new unique client_message_id. Returns 409 if a previous message is still pending."
+          }
+        },
+        {
+          "name": "Poll Message Status",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+            },
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": {
+              "raw": "{{base_url}}/api/v1/student/chats/{{chat_uuid}}/messages/{{assistant_msg_uuid}}/status",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "student", "chats", "{{chat_uuid}}", "messages", "{{assistant_msg_uuid}}", "status"]
+            },
+            "description": "Poll every 2-5 seconds. Stop when assistant_message.status is 'completed' or 'failed'. On 'completed', content field has the AI answer."
+          }
+        },
+        {
+          "name": "Retry Failed Message",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+            },
+            "method": "POST",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": {
+              "raw": "{{base_url}}/api/v1/student/chats/{{chat_uuid}}/messages/{{assistant_msg_uuid}}/retry",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "student", "chats", "{{chat_uuid}}", "messages", "{{assistant_msg_uuid}}", "retry"]
+            },
+            "description": "Re-queue an AI request for a failed assistant message. Returns 422 if message is not in 'failed' status. Returns 409 if already queued/processing."
+          }
+        },
+        {
+          "name": "Rename Chat",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+            },
+            "method": "PATCH",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"title\": \"My graduation plan discussion\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/student/chats/{{chat_uuid}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "student", "chats", "{{chat_uuid}}"]
+            }
+          }
+        },
+        {
+          "name": "Delete (Soft-Hide) Chat",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+            },
+            "method": "DELETE",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": {
+              "raw": "{{base_url}}/api/v1/student/chats/{{chat_uuid}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "student", "chats", "{{chat_uuid}}"]
+            },
+            "description": "Soft-deletes the conversation (hides from student). NOT permanently deleted — admin can still see it."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Guest Chat",
+      "description": "AI chatbot for anonymous guests. No Authorization header. Use X-Guest-Token after first message.",
+      "item": [
+        {
+          "name": "Send First Guest Message (No Token)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var data = pm.response.json();",
+                  "if (data.success && data.data) {",
+                  "    pm.environment.set('guest_request_id', data.data.request_id);",
+                  "    if (data.data.guest_token) {",
+                  "        pm.environment.set('guest_token', data.data.guest_token);",
+                  "        console.log('Guest token saved!');",
+                  "    }",
+                  "    console.log('request_id:', data.data.request_id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
           "request": {
             "method": "POST",
             "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "X-GATE-API-KEY",
-                "value": "{{gate_api_key}}"
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"message\": \"What are the admission requirements for Galala University?\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/guest/chat/messages",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "guest", "chat", "messages"]
+            },
+            "description": "First guest message — NO X-Guest-Token. Response includes guest_token (save it!) and request_id. guest_token is only returned ONCE."
+          }
+        },
+        {
+          "name": "Send Follow-up Guest Message",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var data = pm.response.json();",
+                  "if (data.success && data.data) {",
+                  "    pm.environment.set('guest_request_id', data.data.request_id);",
+                  "    console.log('New request_id:', data.data.request_id);",
+                  "}"
+                ],
+                "type": "text/javascript"
               }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-Guest-Token", "value": "{{guest_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"message\": \"What scholarships are available?\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/guest/chat/messages",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "guest", "chat", "messages"]
+            },
+            "description": "Follow-up message. Must include X-Guest-Token. guest_token is NOT returned in this response."
+          }
+        },
+        {
+          "name": "Poll Guest Message Status",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "X-Guest-Token", "value": "{{guest_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/guest/chat/messages/{{guest_request_id}}/status",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "guest", "chat", "messages", "{{guest_request_id}}", "status"]
+            },
+            "description": "Poll every 2-5 seconds. Stop when status is 'completed' or 'failed'. On completed: data.content has the AI answer."
+          }
+        },
+        {
+          "name": "Get Guest Chat History",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "X-Guest-Token", "value": "{{guest_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/guest/chat/history",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "guest", "chat", "history"]
+            },
+            "description": "Returns all user+assistant messages for this guest session. Also refreshes the session TTL (2 hours by default)."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Gate (Hardware Only)",
+      "description": "Gate hardware API. NOT for student/guest frontend use. Requires X-GATE-API-KEY.",
+      "item": [
+        {
+          "name": "Gate Vehicle Access Check",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-GATE-API-KEY", "value": "{{gate_api_key}}" }
             ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"OCR\": \"س م ١ ٤ ٦ ٩\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
+              "options": { "raw": { "language": "json" } }
             },
             "url": {
               "raw": "{{base_url}}/api/v1/gate/vehicle-access/check",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "gate",
-                "vehicle-access",
-                "check"
-              ]
-            }
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "gate", "vehicle-access", "check"]
+            },
+            "description": "Checks if a vehicle plate (from OCR) has an active approved permit. Arabic/Persian digits and letter variants are normalized automatically."
           }
         }
       ]
@@ -297,35 +488,20 @@
   "event": [
     {
       "listen": "prerequest",
-      "script": {
-        "type": "text/javascript",
-        "exec": [
-          ""
-        ]
-      }
+      "script": { "type": "text/javascript", "exec": [""] }
     },
     {
       "listen": "test",
-      "script": {
-        "type": "text/javascript",
-        "exec": [
-          ""
-        ]
-      }
+      "script": { "type": "text/javascript", "exec": [""] }
     }
   ],
   "variable": [
-    {
-      "key": "base_url",
-      "value": "http://localhost:8000"
-    },
-    {
-      "key": "token",
-      "value": ""
-    },
-    {
-      "key": "gate_api_key",
-      "value": ""
-    }
+    { "key": "base_url",     "value": "http://localhost:8000", "description": "Laravel backend base URL" },
+    { "key": "token",        "value": "",                      "description": "Sanctum student token (set automatically by Login request)" },
+    { "key": "gate_api_key", "value": "",                      "description": "Gate API key (from server .env GATE_API_KEY)" },
+    { "key": "chat_uuid",    "value": "",                      "description": "Chat conversation UUID (set automatically by Create Chat request)" },
+    { "key": "assistant_msg_uuid", "value": "",               "description": "Assistant message UUID for polling (set automatically)" },
+    { "key": "guest_token",  "value": "",                      "description": "Guest token (set automatically by first guest message)" },
+    { "key": "guest_request_id", "value": "",                  "description": "Guest request ID for polling (set automatically)" }
   ]
 }

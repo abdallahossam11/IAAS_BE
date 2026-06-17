@@ -43,7 +43,7 @@ class GuestChatController extends Controller
             $this->store->createRequest($requestId, $tokenHash);
 
             ProcessGuestAiChat::dispatch($requestId, $tokenHash)
-                ->onConnection('redis')
+                ->onConnection(config('chat.ai_connection'))
                 ->onQueue(config('chat.ai_queue'));
         } catch (\Throwable $e) {
             $this->store->rollbackSubmission($tokenHash, $requestId);

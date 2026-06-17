@@ -23,7 +23,7 @@ class SendGuestMessageRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'message'     => ['required', 'string', 'max:' . config('chat.max_message_length', 4000)],
+            'message'     => ['required', 'string', 'max:' . config('chat.max_message_length', 3000)],
             'guest_token' => ['nullable', 'string', 'size:64', 'regex:/^[A-Za-z0-9]{64}$/'],
         ];
     }

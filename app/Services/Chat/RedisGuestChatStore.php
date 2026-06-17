@@ -12,7 +12,7 @@ class RedisGuestChatStore implements GuestChatStore
 
     public function __construct(?int $historyTtl = null, ?int $pendingTtl = null)
     {
-        $this->historyTtl = $historyTtl ?? (int) config('chat.guest_session_ttl', 86400);
+        $this->historyTtl = $historyTtl ?? (int) config('chat.guest_session_ttl', 7200);
         $this->pendingTtl = $pendingTtl ?? (int) config('chat.guest_pending_ttl', 600);
     }
 
@@ -29,6 +29,11 @@ class RedisGuestChatStore implements GuestChatStore
     private function requestKey(string $requestId): string
     {
         return "guest_ai_request:{$requestId}";
+    }
+
+    private function aiSessionKey(string $tokenHash): string
+    {
+        return "guest_chat:{$tokenHash}:ai_session";
     }
 
     // ── appendUserMessage ────────────────────────────────────────────────────
@@ -348,5 +353,19 @@ LUA;
     public function refreshHistoryTtl(string $tokenHash): void
     {
         Redis::connection()->expire($this->messagesKey($tokenHash), $this->historyTtl);
+    }
+
+    // ── AI session id (per guest token) ───────────────────────────────────────
+
+    public function getAiSessionId(string $tokenHash): ?string
+    {
+        $value = Redis::connection()->get($this->aiSessionKey($tokenHash));
+
+        return ($value === null || $value === false || $value === '') ? null : (string) $value;
+    }
+
+    public function setAiSessionId(string $tokenHash, string $sessionId): void
+    {
+        Redis::connection()->setex($this->aiSessionKey($tokenHash), $this->historyTtl, $sessionId);
     }
 }

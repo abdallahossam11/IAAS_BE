@@ -24,12 +24,18 @@ class InMemoryGuestChatStore implements GuestChatStore
     /** @var array<string, int|null> */
     private array $pendingTtl = [];
 
+    /** @var array<string, string> */
+    private array $aiSessions = [];
+
+    /** @var array<string, int|null> */
+    private array $aiSessionsTtl = [];
+
     private int $historyTtl;
     private int $pendingTtlS;
 
     public function __construct(?int $historyTtl = null, ?int $pendingTtl = null)
     {
-        $this->historyTtl  = $historyTtl ?? (int) config('chat.guest_session_ttl', 86400);
+        $this->historyTtl  = $historyTtl ?? (int) config('chat.guest_session_ttl', 7200);
         $this->pendingTtlS = $pendingTtl ?? (int) config('chat.guest_pending_ttl', 600);
     }
 
@@ -334,5 +340,22 @@ class InMemoryGuestChatStore implements GuestChatStore
         if (isset($this->messages[$tokenHash]) && ! $this->isExpired($this->messagesTtl[$tokenHash] ?? null)) {
             $this->messagesTtl[$tokenHash] = $this->now() + $this->historyTtl;
         }
+    }
+
+    // ── AI session id (per guest token) ───────────────────────────────────────
+
+    public function getAiSessionId(string $tokenHash): ?string
+    {
+        if ($this->isExpired($this->aiSessionsTtl[$tokenHash] ?? null)) {
+            return null;
+        }
+
+        return $this->aiSessions[$tokenHash] ?? null;
+    }
+
+    public function setAiSessionId(string $tokenHash, string $sessionId): void
+    {
+        $this->aiSessions[$tokenHash]    = $sessionId;
+        $this->aiSessionsTtl[$tokenHash] = $this->now() + $this->historyTtl;
     }
 }

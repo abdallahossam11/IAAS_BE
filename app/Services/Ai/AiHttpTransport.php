@@ -21,7 +21,7 @@ class AiHttpTransport
      *
      * @throws AiClientException on configuration error or transport failure
      */
-    public function send(string $fullUrl, string $token, array $payload): Response
+    public function send(string $fullUrl, #[\SensitiveParameter] string $token, array $payload): Response
     {
         $fullUrl = trim($fullUrl);
         $token   = trim($token);
@@ -29,15 +29,22 @@ class AiHttpTransport
         $this->guardUrlAndToken($fullUrl, $token);
 
         try {
-            return Http::acceptJson()
+            $request = Http::acceptJson()
                 ->asJson()
                 ->contentType('application/json; charset=utf-8')
                 ->withToken($token)
-                ->withHeaders(['X-Request-ID' => $payload['request_id']])
                 ->connectTimeout((int) config('chat.ai_connect_timeout', 10))
                 ->timeout((int) config('chat.ai_response_timeout', 420))
-                ->withoutRedirecting()
-                ->post($fullUrl, $payload);
+                ->withoutRedirecting();
+
+            // Legacy callers include a request_id and expect the X-Request-ID
+            // header; the new /api/chat contract has no request_id, so only add
+            // the header when present (backward compatible).
+            if (isset($payload['request_id'])) {
+                $request = $request->withHeaders(['X-Request-ID' => $payload['request_id']]);
+            }
+
+            return $request->post($fullUrl, $payload);
         } catch (ConnectionException $e) {
             $msg = strtolower($e->getMessage());
 

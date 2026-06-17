@@ -6,9 +6,11 @@ use App\Filament\Resources\StudentResource\Pages;
 use App\Models\Student;
 use Filament\Forms;
 use Filament\Forms\Form;
+use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Illuminate\Support\Collection;
 
 class StudentResource extends Resource
 {
@@ -120,7 +122,35 @@ class StudentResource extends Resource
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
+                    // Skip students that have chatbot history; delete the rest.
+                    // This prevents the DB restrictOnDelete from raising a raw
+                    // QueryException and tells the admin what was skipped.
+                    Tables\Actions\DeleteBulkAction::make()
+                        ->action(function (Collection $records): void {
+                            $protected = $records->filter(
+                                fn (Student $student): bool => $student->hasChatHistory()
+                            );
+                            $deletable = $records->reject(
+                                fn (Student $student): bool => $student->hasChatHistory()
+                            );
+
+                            $deletable->each(fn (Student $student) => $student->delete());
+
+                            if ($protected->isNotEmpty()) {
+                                Notification::make()
+                                    ->title('Some students were not deleted')
+                                    ->body($protected->count() . ' student(s) with saved chatbot history were skipped. Delete their conversations first.')
+                                    ->warning()
+                                    ->send();
+
+                                return;
+                            }
+
+                            Notification::make()
+                                ->title('Selected students deleted')
+                                ->success()
+                                ->send();
+                        }),
                 ]),
             ]);
     }

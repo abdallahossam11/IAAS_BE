@@ -53,4 +53,18 @@ class Student extends Authenticatable
     {
         return $this->hasMany(ChatConversation::class, 'student_id');
     }
+
+    // ──────────────────────────────────────────────
+    // Guards
+    // ──────────────────────────────────────────────
+
+    /**
+     * True when the student has any chatbot conversation row (active or
+     * student-hidden). Such students cannot be deleted — their chat history
+     * must be removed first.
+     */
+    public function hasChatHistory(): bool
+    {
+        return $this->chatConversations()->exists();
+    }
 }

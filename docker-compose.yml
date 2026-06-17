@@ -12,8 +12,8 @@ x-app-environment: &app-environment
   DB_PASSWORD: ${DB_PASSWORD:-iaas_password}
 
   SESSION_DRIVER: database
-  CACHE_STORE: database
-  QUEUE_CONNECTION: database
+  CACHE_STORE: redis
+  QUEUE_CONNECTION: redis
 
   SANCTUM_STATEFUL_DOMAINS: localhost,127.0.0.1
 

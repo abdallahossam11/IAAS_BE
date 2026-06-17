@@ -23,6 +23,7 @@ class ChatConversation extends Model
 
     protected $fillable = [
         'uuid',
+        'session_id',
         'student_id',
         'title',
         'status',

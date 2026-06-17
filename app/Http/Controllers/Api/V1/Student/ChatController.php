@@ -70,7 +70,7 @@ class ChatController extends Controller
                     ]);
 
                     ProcessStudentAiChat::dispatch($aiRequest->id)
-                        ->onConnection('redis')
+                        ->onConnection(config('chat.ai_connection'))
                         ->onQueue(config('chat.ai_queue'))
                         ->afterCommit();
 
@@ -278,7 +278,7 @@ class ChatController extends Controller
                     $conversation->update(['last_message_at' => now()]);
 
                     ProcessStudentAiChat::dispatch($aiRequest->id)
-                        ->onConnection('redis')
+                        ->onConnection(config('chat.ai_connection'))
                         ->onQueue(config('chat.ai_queue'))
                         ->afterCommit();
 
@@ -393,7 +393,7 @@ class ChatController extends Controller
                 ]);
 
                 ProcessStudentAiChat::dispatch($newAiRequest->id)
-                    ->onConnection('redis')
+                    ->onConnection(config('chat.ai_connection'))
                     ->onQueue(config('chat.ai_queue'))
                     ->afterCommit();
 
