@@ -32,7 +32,8 @@ class FacultyPolicy
 
     public function delete(Admin $user, Faculty $model): bool
     {
-        return $user->isSuperAdmin() || $user->isAcademicAdmin();
+        return ($user->isSuperAdmin() || $user->isAcademicAdmin())
+            && ! $model->hasStudentsWithChatHistory();
     }
 
     public function deleteAny(Admin $user): bool

@@ -4,6 +4,8 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Str;
 
 class ChatMessage extends Model
@@ -14,13 +16,17 @@ class ChatMessage extends Model
     // Constants
     // ──────────────────────────────────────────────
 
-    public const ROLE_USER      = 'user';
-    public const ROLE_ASSISTANT = 'assistant';
-    public const ROLE_SYSTEM    = 'system';
+    public const ROLE_USER = 'user';
 
-    public const STATUS_PENDING   = 'pending';
+    public const ROLE_ASSISTANT = 'assistant';
+
+    public const ROLE_SYSTEM = 'system';
+
+    public const STATUS_PENDING = 'pending';
+
     public const STATUS_COMPLETED = 'completed';
-    public const STATUS_FAILED    = 'failed';
+
+    public const STATUS_FAILED = 'failed';
 
     // ──────────────────────────────────────────────
     // Mass assignment
@@ -53,7 +59,7 @@ class ChatMessage extends Model
     // Relationships
     // ──────────────────────────────────────────────
 
-    public function conversation(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    public function conversation(): BelongsTo
     {
         return $this->belongsTo(ChatConversation::class, 'chat_conversation_id');
     }
@@ -61,7 +67,7 @@ class ChatMessage extends Model
     /**
      * HasMany — retries create multiple AI-request attempts for the same user message.
      */
-    public function aiRequestsAsUser(): \Illuminate\Database\Eloquent\Relations\HasMany
+    public function aiRequestsAsUser(): HasMany
     {
         return $this->hasMany(ChatAiRequest::class, 'user_message_id');
     }
@@ -69,7 +75,7 @@ class ChatMessage extends Model
     /**
      * HasMany — retries create multiple AI-request attempts for the same assistant placeholder.
      */
-    public function aiRequestsAsAssistant(): \Illuminate\Database\Eloquent\Relations\HasMany
+    public function aiRequestsAsAssistant(): HasMany
     {
         return $this->hasMany(ChatAiRequest::class, 'assistant_message_id');
     }

@@ -4,6 +4,7 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\StudentResource\Pages;
 use App\Models\Student;
+use App\Support\Security\PasswordRules;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Notifications\Notification;
@@ -46,6 +47,10 @@ class StudentResource extends Resource
                     ->password()
                     ->required(fn (string $operation): bool => $operation === 'create')
                     ->dehydrated(fn (?string $state): bool => filled($state))
+                    ->rules(fn (string $operation): array => $operation === 'create'
+                        ? PasswordRules::requiredStrong()
+                        : PasswordRules::optionalStrong()
+                    )
                     ->maxLength(255),
 
                 Forms\Components\Select::make('faculty_id')
@@ -139,7 +144,7 @@ class StudentResource extends Resource
                             if ($protected->isNotEmpty()) {
                                 Notification::make()
                                     ->title('Some students were not deleted')
-                                    ->body($protected->count() . ' student(s) with saved chatbot history were skipped. Delete their conversations first.')
+                                    ->body($protected->count().' student(s) with saved chatbot history were skipped. Delete their conversations first.')
                                     ->warning()
                                     ->send();
 

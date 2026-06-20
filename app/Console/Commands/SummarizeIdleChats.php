@@ -7,6 +7,7 @@ use App\Models\ChatAiRequest;
 use App\Models\ChatConversation;
 use Illuminate\Console\Command;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
 class SummarizeIdleChats extends Command
@@ -18,7 +19,7 @@ class SummarizeIdleChats extends Command
     public function handle(): int
     {
         $idleSeconds = (int) config('chat.summarize_idle_seconds', 7200);
-        $threshold   = now()->subSeconds($idleSeconds);
+        $threshold = now()->subSeconds($idleSeconds);
 
         $count = 0;
 
@@ -49,7 +50,7 @@ class SummarizeIdleChats extends Command
      * Student-hidden conversations are included (still saved; admin-restorable).
      * Guests are inherently excluded — they have no chat_conversations rows.
      */
-    private function eligibleQuery(\Illuminate\Support\Carbon $threshold): Builder
+    private function eligibleQuery(Carbon $threshold): Builder
     {
         return ChatConversation::query()
             ->whereNotNull('session_id')

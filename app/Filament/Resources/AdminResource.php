@@ -4,6 +4,7 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\AdminResource\Pages;
 use App\Models\Admin;
+use App\Support\Security\PasswordRules;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -40,6 +41,10 @@ class AdminResource extends Resource
                     ->password()
                     ->required(fn (string $operation): bool => $operation === 'create')
                     ->dehydrated(fn (?string $state): bool => filled($state))
+                    ->rules(fn (string $operation): array => $operation === 'create'
+                        ? PasswordRules::requiredStrong()
+                        : PasswordRules::optionalStrong()
+                    )
                     ->maxLength(255),
 
                 Forms\Components\Select::make('role')

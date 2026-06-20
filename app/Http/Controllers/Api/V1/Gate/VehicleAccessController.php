@@ -12,9 +12,6 @@ class VehicleAccessController extends Controller
 {
     /**
      * Check if a vehicle is allowed access based on the OCR plate number.
-     *
-     * @param Request $request
-     * @return JsonResponse
      */
     public function check(Request $request): JsonResponse
     {
@@ -57,7 +54,7 @@ class VehicleAccessController extends Controller
                         'valid_from' => $matchedPermit->semester_start_date->toDateString(),
                         'valid_until' => $matchedPermit->semester_end_date->toDateString(),
                     ],
-                ]
+                ],
             ]);
         }
 
@@ -68,15 +65,12 @@ class VehicleAccessController extends Controller
             'data' => [
                 'plate_number' => $request->input('OCR'),
                 'normalized_plate' => $ocrPlate,
-            ]
+            ],
         ]);
     }
 
     /**
      * Normalize a vehicle plate string for robust matching.
-     *
-     * @param string $plate
-     * @return string
      */
     public function normalizePlate(string $plate): string
     {

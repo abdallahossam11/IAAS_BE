@@ -43,7 +43,7 @@ class ChatConversationResource extends Resource
     public static function getEloquentQuery(): Builder
     {
         return parent::getEloquentQuery()
-            ->with('student')
+            ->with(['student', 'chatSummary'])
             ->withCount(['messages', 'aiRequests']);
     }
 
@@ -93,6 +93,19 @@ class ChatConversationResource extends Resource
                     ->dateTime()
                     ->sortable()
                     ->placeholder('—'),
+
+                Tables\Columns\TextColumn::make('chatSummary.summary_text')
+                    ->label('Summary')
+                    ->limit(100)
+                    ->placeholder('Not summarized yet')
+                    ->toggleable(isToggledHiddenByDefault: true),
+
+                Tables\Columns\TextColumn::make('summary_updated_at')
+                    ->label('Summary Updated')
+                    ->dateTime()
+                    ->sortable()
+                    ->placeholder('—')
+                    ->toggleable(),
 
                 Tables\Columns\TextColumn::make('created_at')
                     ->label('Created')
@@ -243,7 +256,7 @@ class ChatConversationResource extends Resource
     {
         return [
             'index' => Pages\ListChatConversations::route('/'),
-            'view'  => Pages\ViewChatConversation::route('/{record}'),
+            'view' => Pages\ViewChatConversation::route('/{record}'),
         ];
     }
 }

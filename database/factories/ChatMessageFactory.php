@@ -18,13 +18,13 @@ class ChatMessageFactory extends Factory
     public function definition(): array
     {
         return [
-            'uuid'                 => (string) Str::uuid(),
+            'uuid' => (string) Str::uuid(),
             'chat_conversation_id' => ChatConversation::factory(),
-            'role'                 => ChatMessage::ROLE_USER,
-            'content'              => $this->faker->sentence(),
-            'status'               => ChatMessage::STATUS_COMPLETED,
-            'sequence_number'      => 1,
-            'client_message_id'    => (string) Str::uuid(),
+            'role' => ChatMessage::ROLE_USER,
+            'content' => $this->faker->sentence(),
+            'status' => ChatMessage::STATUS_COMPLETED,
+            'sequence_number' => 1,
+            'client_message_id' => (string) Str::uuid(),
         ];
     }
 
@@ -38,9 +38,9 @@ class ChatMessageFactory extends Factory
     public function pendingAssistant(): static
     {
         return $this->state(fn (array $attributes) => [
-            'role'              => ChatMessage::ROLE_ASSISTANT,
-            'content'           => null,
-            'status'            => ChatMessage::STATUS_PENDING,
+            'role' => ChatMessage::ROLE_ASSISTANT,
+            'content' => null,
+            'status' => ChatMessage::STATUS_PENDING,
             'client_message_id' => null,
         ]);
     }
@@ -51,9 +51,9 @@ class ChatMessageFactory extends Factory
     public function failedAssistant(): static
     {
         return $this->state(fn (array $attributes) => [
-            'role'              => ChatMessage::ROLE_ASSISTANT,
-            'content'           => null,
-            'status'            => ChatMessage::STATUS_FAILED,
+            'role' => ChatMessage::ROLE_ASSISTANT,
+            'content' => null,
+            'status' => ChatMessage::STATUS_FAILED,
             'client_message_id' => null,
         ]);
     }

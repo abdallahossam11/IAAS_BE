@@ -11,7 +11,7 @@ class EnsureGateApiKey
     /**
      * Handle an incoming request.
      *
-     * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
+     * @param  Closure(Request): (Response)  $next
      */
     public function handle(Request $request, Closure $next): Response
     {
@@ -21,7 +21,7 @@ class EnsureGateApiKey
         if (empty($expectedKey) || empty($providedKey) || ! hash_equals($expectedKey, $providedKey)) {
             return response()->json([
                 'success' => false,
-                'message' => 'Unauthorized gate device.'
+                'message' => 'Unauthorized gate device.',
             ], 401);
         }
 

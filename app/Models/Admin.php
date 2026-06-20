@@ -5,6 +5,7 @@ namespace App\Models;
 use Filament\Models\Contracts\FilamentUser;
 use Filament\Panel;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
@@ -72,8 +73,8 @@ class Admin extends Authenticatable implements FilamentUser
     // Relationships (will be used in later phases)
     // ──────────────────────────────────────────────
 
-    public function reviewedVehicleRequests(): \Illuminate\Database\Eloquent\Relations\HasMany
+    public function reviewedVehicleRequests(): HasMany
     {
-        return $this->hasMany(\App\Models\VehicleRequest::class, 'admin_id');
+        return $this->hasMany(VehicleRequest::class, 'admin_id');
     }
 }

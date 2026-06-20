@@ -14,7 +14,9 @@ class ProcessGuestAiChat implements ShouldQueue
     use Queueable;
 
     public int $timeout = 450;
+
     public int $tries = 1;
+
     public bool $failOnTimeout = true;
 
     public function __construct(
@@ -71,7 +73,7 @@ class ProcessGuestAiChat implements ShouldQueue
 
         // 7. Call the AI with user_id = 0. The client validates the response shape
         //    and that the echoed user_id matches.
-        $result            = $client->chat(0, $currentMessage, $sessionId);
+        $result = $client->chat(0, $currentMessage, $sessionId);
         $returnedSessionId = $result['session_id'];
 
         // 8. Session-id integrity: continuing chats must echo the same session id.
@@ -97,7 +99,7 @@ class ProcessGuestAiChat implements ShouldQueue
 
     public function failed(\Throwable $e): void
     {
-        $errorCode    = $e instanceof AiClientException ? $e->errorCode    : 'UNEXPECTED_ERROR';
+        $errorCode = $e instanceof AiClientException ? $e->errorCode : 'UNEXPECTED_ERROR';
         $errorMessage = $e instanceof AiClientException ? $e->getMessage() : 'An unexpected error occurred.';
 
         app(GuestChatStore::class)->failRequest(
@@ -111,9 +113,9 @@ class ProcessGuestAiChat implements ShouldQueue
         // request UUID; the raw guest token, token hash, AI session id, message
         // content, and payload are never logged.
         Log::warning('AI chat request failed', [
-            'chat_type'  => 'guest',
+            'chat_type' => 'guest',
             'request_id' => $this->requestId,
-            'status'     => 'failed',
+            'status' => 'failed',
             'error_code' => $errorCode,
         ]);
     }

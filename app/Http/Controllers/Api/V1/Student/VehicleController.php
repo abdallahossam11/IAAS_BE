@@ -3,10 +3,13 @@
 namespace App\Http\Controllers\Api\V1\Student;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Student\StoreVehicleRequestRequest;
+use App\Models\Student;
 use App\Models\VehicleRequest;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class VehicleController extends Controller
 {
@@ -121,54 +124,57 @@ class VehicleController extends Controller
      * - Can submit if latest is rejected.
      * - Can submit if previous approved permit is expired.
      */
-    public function store(Request $request): JsonResponse
+    public function store(StoreVehicleRequestRequest $request): JsonResponse
     {
-        $request->validate([
-            'vehicle_type' => 'required|string',
-            'vehicle_model' => 'required|string',
-            'vehicle_color' => 'required|string',
-            'plate_number' => 'required|string',
-        ]);
-
         $student = $request->user();
         $today = Carbon::today();
 
-        // Check for any pending request
-        $hasPending = $student->vehicleRequests()
-            ->where('status', 'pending')
-            ->exists();
+        $result = DB::transaction(function () use ($student, $today, $request) {
+            // Lock the student row itself so that even two simultaneous
+            // first-time submissions (where no vehicle_request rows exist yet)
+            // are serialised. Locking only the vehicle_request rows would leave
+            // the empty-result case unprotected.
+            $lockedStudent = Student::whereKey($student->id)->lockForUpdate()->firstOrFail();
 
-        if ($hasPending) {
+            // Check for any pending request
+            $hasPending = $lockedStudent->vehicleRequests()
+                ->where('status', 'pending')
+                ->exists();
+
+            if ($hasPending) {
+                return ['conflict' => true];
+            }
+
+            // Check for any active approved permit.
+            // Business rule: semester_end_date >= today blocks a new submission.
+            $hasActivePermit = $lockedStudent->vehicleRequests()
+                ->where('status', 'approved')
+                ->whereNotNull('semester_end_date')
+                ->where('semester_end_date', '>=', $today)
+                ->exists();
+
+            if ($hasActivePermit) {
+                return ['conflict' => true];
+            }
+
+            return ['vehicle_request' => VehicleRequest::create([
+                'student_id' => $lockedStudent->id,
+                'vehicle_type' => $request->vehicle_type,
+                'vehicle_model' => $request->vehicle_model,
+                'vehicle_color' => $request->vehicle_color,
+                'plate_number' => $request->plate_number,
+                'status' => 'pending',
+            ])];
+        });
+
+        if (isset($result['conflict'])) {
             return response()->json([
                 'success' => false,
                 'message' => 'You already have a pending vehicle request or active permit.',
             ], 422);
         }
 
-        // Check for any active approved permit
-        // Current business rule: Any approved permit with semester_end_date >= today blocks new requests.
-        $hasActivePermit = $student->vehicleRequests()
-            ->where('status', 'approved')
-            ->whereNotNull('semester_end_date')
-            ->where('semester_end_date', '>=', $today)
-            ->exists();
-
-        if ($hasActivePermit) {
-            return response()->json([
-                'success' => false,
-                'message' => 'You already have a pending vehicle request or active permit.',
-            ], 422);
-        }
-
-        // Create the new vehicle request
-        $vehicleRequest = VehicleRequest::create([
-            'student_id' => $student->id,
-            'vehicle_type' => $request->vehicle_type,
-            'vehicle_model' => $request->vehicle_model,
-            'vehicle_color' => $request->vehicle_color,
-            'plate_number' => $request->plate_number,
-            'status' => 'pending',
-        ]);
+        $vehicleRequest = $result['vehicle_request'];
 
         return response()->json([
             'success' => true,

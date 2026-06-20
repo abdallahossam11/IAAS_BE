@@ -4,6 +4,7 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\VehicleRequestResource\Pages;
 use App\Models\VehicleRequest;
+use App\Support\Security\AuditLog;
 use Carbon\Carbon;
 use Filament\Forms;
 use Filament\Notifications\Notification;
@@ -119,6 +120,22 @@ class VehicleRequestResource extends Resource
                                 ->body('This request is no longer pending.')
                                 ->danger()
                                 ->send();
+
+                            return;
+                        }
+
+                        // Date order guard: semester_end_date must be after semester_start_date
+                        if (
+                            ! empty($data['semester_start_date'])
+                            && ! empty($data['semester_end_date'])
+                            && $data['semester_end_date'] <= $data['semester_start_date']
+                        ) {
+                            Notification::make()
+                                ->title('Invalid date range')
+                                ->body('Semester end date must be after semester start date.')
+                                ->danger()
+                                ->send();
+
                             return;
                         }
 
@@ -137,6 +154,7 @@ class VehicleRequestResource extends Resource
                                 ->body('This student already has an active approved vehicle permit.')
                                 ->danger()
                                 ->send();
+
                             return;
                         }
 
@@ -147,6 +165,14 @@ class VehicleRequestResource extends Resource
                             'semester_start_date' => $data['semester_start_date'],
                             'semester_end_date' => $data['semester_end_date'],
                             'rejection_reason' => null,
+                        ]);
+
+                        AuditLog::info('vehicle_request_approved', [
+                            'actor_admin_id' => auth()->id(),
+                            'vehicle_request_id' => $record->id,
+                            'student_id' => $record->student_id,
+                            'semester_start' => $data['semester_start_date'],
+                            'semester_end' => $data['semester_end_date'],
                         ]);
 
                         Notification::make()
@@ -177,6 +203,7 @@ class VehicleRequestResource extends Resource
                                 ->body('This request is no longer pending.')
                                 ->danger()
                                 ->send();
+
                             return;
                         }
 
@@ -187,6 +214,13 @@ class VehicleRequestResource extends Resource
                             'approved_at' => null,
                             'semester_start_date' => null,
                             'semester_end_date' => null,
+                        ]);
+
+                        AuditLog::warning('vehicle_request_rejected', [
+                            'actor_admin_id' => auth()->id(),
+                            'vehicle_request_id' => $record->id,
+                            'student_id' => $record->student_id,
+                            'reason' => $data['rejection_reason'],
                         ]);
 
                         Notification::make()

@@ -6,9 +6,11 @@ use App\Filament\Resources\FacultyResource\Pages;
 use App\Models\Faculty;
 use Filament\Forms;
 use Filament\Forms\Form;
+use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Illuminate\Support\Collection;
 
 class FacultyResource extends Resource
 {
@@ -56,7 +58,39 @@ class FacultyResource extends Resource
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
+                    // Skip faculties whose students have chatbot history; delete the rest.
+                    // The DB's restrictOnDelete on chat_conversations.student_id would
+                    // otherwise cause a QueryException when the cascade hits those students.
+                    Tables\Actions\DeleteBulkAction::make()
+                        ->action(function (Collection $records): void {
+                            $protected = $records->filter(
+                                fn (Faculty $faculty): bool => $faculty->hasStudentsWithChatHistory()
+                            );
+                            $deletable = $records->reject(
+                                fn (Faculty $faculty): bool => $faculty->hasStudentsWithChatHistory()
+                            );
+
+                            $deletable->each(fn (Faculty $faculty) => $faculty->delete());
+
+                            if ($protected->isNotEmpty()) {
+                                Notification::make()
+                                    ->title('Some faculties were not deleted')
+                                    ->body(
+                                        $protected->count().' '.
+                                        ($protected->count() === 1 ? 'faculty has' : 'faculties have').
+                                        ' students with saved chatbot history and were skipped. Delete the conversations first.'
+                                    )
+                                    ->warning()
+                                    ->send();
+
+                                return;
+                            }
+
+                            Notification::make()
+                                ->title('Selected faculties deleted')
+                                ->success()
+                                ->send();
+                        }),
                 ]),
             ]);
     }

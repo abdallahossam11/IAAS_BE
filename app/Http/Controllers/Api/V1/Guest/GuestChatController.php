@@ -21,11 +21,11 @@ class GuestChatController extends Controller
     public function send(SendGuestMessageRequest $request): JsonResponse
     {
         $rawToken = $request->header('X-Guest-Token');
-        $isNew    = false;
+        $isNew = false;
 
         if ($rawToken === null || $rawToken === '') {
             $rawToken = Str::random(64);
-            $isNew    = true;
+            $isNew = true;
         }
 
         $tokenHash = hash('sha256', $rawToken);
@@ -76,7 +76,7 @@ class GuestChatController extends Controller
             ], 404);
         }
 
-        $rawToken  = $request->header('X-Guest-Token');
+        $rawToken = $request->header('X-Guest-Token');
         $tokenHash = hash('sha256', $rawToken);
 
         $req = $this->store->getRequest($requestId);
@@ -90,10 +90,10 @@ class GuestChatController extends Controller
 
         return response()->json([
             'success' => true,
-            'data'    => [
+            'data' => [
                 'request_id' => $req['request_id'],
-                'status'     => $req['status'],
-                'content'    => ($req['content'] !== '') ? $req['content'] : null,
+                'status' => $req['status'],
+                'content' => ($req['content'] !== '') ? $req['content'] : null,
                 'error_code' => ($req['error_code'] !== '') ? $req['error_code'] : null,
             ],
         ]);
@@ -109,7 +109,7 @@ class GuestChatController extends Controller
             return $unauthorized;
         }
 
-        $rawToken  = $request->header('X-Guest-Token');
+        $rawToken = $request->header('X-Guest-Token');
         $tokenHash = hash('sha256', $rawToken);
 
         $internalHistory = $this->store->getHistory($tokenHash);
@@ -122,14 +122,14 @@ class GuestChatController extends Controller
         );
 
         $messages = array_values(array_map(fn (array $entry) => [
-            'role'       => $entry['role'],
-            'content'    => $entry['content'],
+            'role' => $entry['role'],
+            'content' => $entry['content'],
             'created_at' => $entry['created_at'],
         ], $publicHistory));
 
         return response()->json([
             'success' => true,
-            'data'    => ['messages' => $messages],
+            'data' => ['messages' => $messages],
         ]);
     }
 

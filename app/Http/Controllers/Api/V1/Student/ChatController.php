@@ -11,6 +11,7 @@ use App\Models\ChatAiRequest;
 use App\Models\ChatConversation;
 use App\Models\ChatMessage;
 use App\Models\Student;
+use App\Support\Security\AuditLog;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -24,9 +25,9 @@ class ChatController extends Controller
     public function store(CreateChatRequest $request): JsonResponse
     {
         /** @var Student $student */
-        $student         = $request->user();
+        $student = $request->user();
         $clientMessageId = $request->input('client_message_id');
-        $messageContent  = $request->input('message');
+        $messageContent = $request->input('message');
 
         $existing = ChatMessage::where('client_message_id', $clientMessageId)->first();
         if ($existing !== null) {
@@ -38,35 +39,35 @@ class ChatController extends Controller
             $txResult = DB::transaction(
                 function () use ($student, $clientMessageId, $messageContent) {
                     $conversation = ChatConversation::create([
-                        'student_id'      => $student->id,
-                        'title'           => Str::limit($messageContent, 50, ''),
-                        'status'          => ChatConversation::STATUS_ACTIVE,
+                        'student_id' => $student->id,
+                        'title' => Str::limit($messageContent, 50, ''),
+                        'status' => ChatConversation::STATUS_ACTIVE,
                         'last_message_at' => now(),
                     ]);
 
                     $userMessage = ChatMessage::create([
                         'chat_conversation_id' => $conversation->id,
-                        'role'                 => ChatMessage::ROLE_USER,
-                        'content'              => $messageContent,
-                        'status'               => ChatMessage::STATUS_COMPLETED,
-                        'sequence_number'      => 1,
-                        'client_message_id'    => $clientMessageId,
+                        'role' => ChatMessage::ROLE_USER,
+                        'content' => $messageContent,
+                        'status' => ChatMessage::STATUS_COMPLETED,
+                        'sequence_number' => 1,
+                        'client_message_id' => $clientMessageId,
                     ]);
 
                     $assistantMessage = ChatMessage::create([
                         'chat_conversation_id' => $conversation->id,
-                        'role'                 => ChatMessage::ROLE_ASSISTANT,
-                        'content'              => null,
-                        'status'               => ChatMessage::STATUS_PENDING,
-                        'sequence_number'      => 2,
+                        'role' => ChatMessage::ROLE_ASSISTANT,
+                        'content' => null,
+                        'status' => ChatMessage::STATUS_PENDING,
+                        'sequence_number' => 2,
                     ]);
 
                     $aiRequest = ChatAiRequest::create([
                         'chat_conversation_id' => $conversation->id,
-                        'user_message_id'      => $userMessage->id,
+                        'user_message_id' => $userMessage->id,
                         'assistant_message_id' => $assistantMessage->id,
-                        'status'               => ChatAiRequest::STATUS_QUEUED,
-                        'attempt_number'       => 1,
+                        'status' => ChatAiRequest::STATUS_QUEUED,
+                        'attempt_number' => 1,
                     ]);
 
                     ProcessStudentAiChat::dispatch($aiRequest->id)
@@ -103,21 +104,21 @@ class ChatController extends Controller
             ->paginate(20);
 
         $conversations = $paginator->getCollection()->map(fn (ChatConversation $c) => [
-            'uuid'            => $c->uuid,
-            'title'           => $c->title,
-            'status'          => $c->status,
+            'uuid' => $c->uuid,
+            'title' => $c->title,
+            'status' => $c->status,
             'last_message_at' => $c->last_message_at?->toIso8601String(),
         ]);
 
         return response()->json([
             'success' => true,
-            'data'    => [
+            'data' => [
                 'conversations' => $conversations,
-                'pagination'    => [
+                'pagination' => [
                     'current_page' => $paginator->currentPage(),
-                    'last_page'    => $paginator->lastPage(),
-                    'per_page'     => $paginator->perPage(),
-                    'total'        => $paginator->total(),
+                    'last_page' => $paginator->lastPage(),
+                    'per_page' => $paginator->perPage(),
+                    'total' => $paginator->total(),
                 ],
             ],
         ]);
@@ -143,20 +144,20 @@ class ChatController extends Controller
             ->orderBy('sequence_number')
             ->get()
             ->map(fn (ChatMessage $m) => [
-                'uuid'            => $m->uuid,
-                'role'            => $m->role,
-                'content'         => $m->content,
-                'status'          => $m->status,
+                'uuid' => $m->uuid,
+                'role' => $m->role,
+                'content' => $m->content,
+                'status' => $m->status,
                 'sequence_number' => $m->sequence_number,
             ]);
 
         return response()->json([
             'success' => true,
-            'data'    => [
+            'data' => [
                 'conversation' => [
-                    'uuid'            => $conversation->uuid,
-                    'title'           => $conversation->title,
-                    'status'          => $conversation->status,
+                    'uuid' => $conversation->uuid,
+                    'title' => $conversation->title,
+                    'status' => $conversation->status,
                     'last_message_at' => $conversation->last_message_at?->toIso8601String(),
                 ],
                 'messages' => $messages,
@@ -180,8 +181,8 @@ class ChatController extends Controller
 
         return response()->json([
             'success' => true,
-            'data'    => [
-                'uuid'  => $conversation->uuid,
+            'data' => [
+                'uuid' => $conversation->uuid,
                 'title' => $conversation->title,
             ],
         ]);
@@ -201,6 +202,11 @@ class ChatController extends Controller
 
         $conversation->update(['deleted_by_student_at' => now()]);
 
+        AuditLog::info('chat_deleted', [
+            'actor_student_id' => $student->id,
+            'chat_uuid' => $conversation->uuid,
+        ]);
+
         return response()->json(['success' => true]);
     }
 
@@ -209,9 +215,9 @@ class ChatController extends Controller
     public function sendMessage(SendMessageRequest $request, string $chatUuid): JsonResponse
     {
         /** @var Student $student */
-        $student         = $request->user();
+        $student = $request->user();
         $clientMessageId = $request->input('client_message_id');
-        $messageContent  = $request->input('message');
+        $messageContent = $request->input('message');
 
         // Layer 1: pre-check before acquiring lock
         $existing = ChatMessage::where('client_message_id', $clientMessageId)->first();
@@ -220,7 +226,7 @@ class ChatController extends Controller
         }
 
         $idempotent = null;
-        $txResult   = null;
+        $txResult = null;
         try {
             $txResult = DB::transaction(
                 function () use ($student, $chatUuid, $clientMessageId, $messageContent, &$idempotent) {
@@ -252,27 +258,27 @@ class ChatController extends Controller
 
                     $userMessage = ChatMessage::create([
                         'chat_conversation_id' => $conversation->id,
-                        'role'                 => ChatMessage::ROLE_USER,
-                        'content'              => $messageContent,
-                        'status'               => ChatMessage::STATUS_COMPLETED,
-                        'sequence_number'      => $nextSeq,
-                        'client_message_id'    => $clientMessageId,
+                        'role' => ChatMessage::ROLE_USER,
+                        'content' => $messageContent,
+                        'status' => ChatMessage::STATUS_COMPLETED,
+                        'sequence_number' => $nextSeq,
+                        'client_message_id' => $clientMessageId,
                     ]);
 
                     $assistantMessage = ChatMessage::create([
                         'chat_conversation_id' => $conversation->id,
-                        'role'                 => ChatMessage::ROLE_ASSISTANT,
-                        'content'              => null,
-                        'status'               => ChatMessage::STATUS_PENDING,
-                        'sequence_number'      => $nextSeq + 1,
+                        'role' => ChatMessage::ROLE_ASSISTANT,
+                        'content' => null,
+                        'status' => ChatMessage::STATUS_PENDING,
+                        'sequence_number' => $nextSeq + 1,
                     ]);
 
                     $aiRequest = ChatAiRequest::create([
                         'chat_conversation_id' => $conversation->id,
-                        'user_message_id'      => $userMessage->id,
+                        'user_message_id' => $userMessage->id,
                         'assistant_message_id' => $assistantMessage->id,
-                        'status'               => ChatAiRequest::STATUS_QUEUED,
-                        'attempt_number'       => 1,
+                        'status' => ChatAiRequest::STATUS_QUEUED,
+                        'attempt_number' => 1,
                     ]);
 
                     $conversation->update(['last_message_at' => now()]);
@@ -326,17 +332,17 @@ class ChatController extends Controller
 
         return response()->json([
             'success' => true,
-            'data'    => [
+            'data' => [
                 'assistant_message' => [
-                    'uuid'    => $assistant->uuid,
+                    'uuid' => $assistant->uuid,
                     'content' => $assistant->content,
-                    'status'  => $assistant->status,
+                    'status' => $assistant->status,
                 ],
                 'ai_request' => $aiRequest ? [
-                    'uuid'           => $aiRequest->uuid,
-                    'status'         => $aiRequest->status,
+                    'uuid' => $aiRequest->uuid,
+                    'status' => $aiRequest->status,
                     'attempt_number' => $aiRequest->attempt_number,
-                    'error_code'     => $aiRequest->error_code,
+                    'error_code' => $aiRequest->error_code,
                 ] : null,
             ],
         ]);
@@ -380,16 +386,16 @@ class ChatController extends Controller
                     ->firstOrFail();
 
                 $assistant->update([
-                    'status'  => ChatMessage::STATUS_PENDING,
+                    'status' => ChatMessage::STATUS_PENDING,
                     'content' => null,
                 ]);
 
                 $newAiRequest = ChatAiRequest::create([
                     'chat_conversation_id' => $conversation->id,
-                    'user_message_id'      => $latestRequest->user_message_id,
+                    'user_message_id' => $latestRequest->user_message_id,
                     'assistant_message_id' => $assistant->id,
-                    'status'               => ChatAiRequest::STATUS_QUEUED,
-                    'attempt_number'       => $latestRequest->attempt_number + 1,
+                    'status' => ChatAiRequest::STATUS_QUEUED,
+                    'attempt_number' => $latestRequest->attempt_number + 1,
                 ]);
 
                 ProcessStudentAiChat::dispatch($newAiRequest->id)
@@ -419,29 +425,29 @@ class ChatController extends Controller
     ): JsonResponse {
         return response()->json([
             'success' => true,
-            'data'    => [
+            'data' => [
                 'chat' => [
-                    'uuid'            => $conversation->uuid,
-                    'title'           => $conversation->title,
+                    'uuid' => $conversation->uuid,
+                    'title' => $conversation->title,
                     'last_message_at' => $conversation->last_message_at?->toIso8601String(),
                 ],
                 'user_message' => [
-                    'uuid'            => $userMessage->uuid,
-                    'role'            => $userMessage->role,
-                    'content'         => $userMessage->content,
-                    'status'          => $userMessage->status,
+                    'uuid' => $userMessage->uuid,
+                    'role' => $userMessage->role,
+                    'content' => $userMessage->content,
+                    'status' => $userMessage->status,
                     'sequence_number' => $userMessage->sequence_number,
                 ],
                 'assistant_message' => [
-                    'uuid'            => $assistantMessage->uuid,
-                    'role'            => $assistantMessage->role,
-                    'content'         => $assistantMessage->content,
-                    'status'          => $assistantMessage->status,
+                    'uuid' => $assistantMessage->uuid,
+                    'role' => $assistantMessage->role,
+                    'content' => $assistantMessage->content,
+                    'status' => $assistantMessage->status,
                     'sequence_number' => $assistantMessage->sequence_number,
                 ],
                 'ai_request' => [
-                    'uuid'           => $aiRequest->uuid,
-                    'status'         => $aiRequest->status,
+                    'uuid' => $aiRequest->uuid,
+                    'status' => $aiRequest->status,
                     'attempt_number' => $aiRequest->attempt_number,
                 ],
             ],

@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Str;
 
 class ChatAiRequest extends Model
@@ -14,10 +15,13 @@ class ChatAiRequest extends Model
     // Constants
     // ──────────────────────────────────────────────
 
-    public const STATUS_QUEUED     = 'queued';
+    public const STATUS_QUEUED = 'queued';
+
     public const STATUS_PROCESSING = 'processing';
-    public const STATUS_COMPLETED  = 'completed';
-    public const STATUS_FAILED     = 'failed';
+
+    public const STATUS_COMPLETED = 'completed';
+
+    public const STATUS_FAILED = 'failed';
 
     // ──────────────────────────────────────────────
     // Mass assignment
@@ -46,7 +50,7 @@ class ChatAiRequest extends Model
         return [
             'submitted_at' => 'datetime',
             'completed_at' => 'datetime',
-            'failed_at'    => 'datetime',
+            'failed_at' => 'datetime',
         ];
     }
 
@@ -67,17 +71,17 @@ class ChatAiRequest extends Model
     // Relationships
     // ──────────────────────────────────────────────
 
-    public function conversation(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    public function conversation(): BelongsTo
     {
         return $this->belongsTo(ChatConversation::class, 'chat_conversation_id');
     }
 
-    public function userMessage(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    public function userMessage(): BelongsTo
     {
         return $this->belongsTo(ChatMessage::class, 'user_message_id');
     }
 
-    public function assistantMessage(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    public function assistantMessage(): BelongsTo
     {
         return $this->belongsTo(ChatMessage::class, 'assistant_message_id');
     }

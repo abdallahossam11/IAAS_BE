@@ -14,12 +14,12 @@ class ChatConversationFactory extends Factory
     public function definition(): array
     {
         return [
-            'uuid'       => (string) Str::uuid(),
+            'uuid' => (string) Str::uuid(),
             'session_id' => null, // AI-generated; null until the AI responds
             'student_id' => Student::factory(),
-            'title'      => $this->faker->sentence(4),
-            'status'     => ChatConversation::STATUS_ACTIVE,
-            'last_message_at'       => null,
+            'title' => $this->faker->sentence(4),
+            'status' => ChatConversation::STATUS_ACTIVE,
+            'last_message_at' => null,
             'deleted_by_student_at' => null,
         ];
     }
@@ -31,7 +31,7 @@ class ChatConversationFactory extends Factory
     public function withSession(?string $sessionId = null): static
     {
         return $this->state(fn () => [
-            'session_id' => $sessionId ?? 'sess-' . Str::uuid()->toString(),
+            'session_id' => $sessionId ?? 'sess-'.Str::uuid()->toString(),
         ]);
     }
 }

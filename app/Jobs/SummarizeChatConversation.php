@@ -15,12 +15,14 @@ use Illuminate\Support\Facades\Log;
  * owns chat_summaries (create/update) — the backend never writes the summary
  * text itself. Unique per conversation to avoid duplicate concurrent summaries.
  */
-class SummarizeChatConversation implements ShouldQueue, ShouldBeUnique
+class SummarizeChatConversation implements ShouldBeUnique, ShouldQueue
 {
     use Queueable;
 
     public int $timeout = 450;
+
     public int $tries = 1;
+
     public bool $failOnTimeout = true;
 
     /** Release the uniqueness lock after this many seconds as a safety net. */
@@ -30,7 +32,7 @@ class SummarizeChatConversation implements ShouldQueue, ShouldBeUnique
 
     public function uniqueId(): string
     {
-        return 'summarize-chat-' . $this->conversationId;
+        return 'summarize-chat-'.$this->conversationId;
     }
 
     public function handle(AiChatClientContract $client): void
@@ -43,7 +45,7 @@ class SummarizeChatConversation implements ShouldQueue, ShouldBeUnique
             return;
         }
 
-        $userId    = (int) $conversation->student_id;
+        $userId = (int) $conversation->student_id;
         $sessionId = $conversation->session_id;
 
         // The client validates the response shape + that user_id/session_id match.
@@ -53,13 +55,16 @@ class SummarizeChatConversation implements ShouldQueue, ShouldBeUnique
         // unexpected for a signed-in chat but safe — warn and move on.
         if ($result['status'] === 'skipped') {
             Log::warning('Chat summary skipped', [
-                'chat_type'         => 'student',
+                'chat_type' => 'student',
                 'conversation_uuid' => $conversation->uuid,
-                'session_id'        => $sessionId,
-                'user_id'           => $userId,
-                'status'            => 'skipped',
-                'reason'            => $result['reason'],
+                'session_id' => $sessionId,
+                'user_id' => $userId,
+                'status' => 'skipped',
+                'reason' => $result['reason'],
             ]);
+        } else {
+            // Track when the AI last wrote a summary so Filament can display it.
+            $conversation->update(['summary_updated_at' => now()]);
         }
     }
 
@@ -72,10 +77,10 @@ class SummarizeChatConversation implements ShouldQueue, ShouldBeUnique
         // Failure-only, secret-safe log: identifiers + code only. Never logs
         // tokens, Authorization, payload, message content, or student PII.
         Log::warning('Chat summary failed', [
-            'chat_type'         => 'student',
+            'chat_type' => 'student',
             'conversation_uuid' => optional($conversation)->uuid,
-            'status'            => 'failed',
-            'error_code'        => $errorCode,
+            'status' => 'failed',
+            'error_code' => $errorCode,
         ]);
     }
 }

@@ -32,10 +32,10 @@ class AiRequestsRelationManager extends RelationManager
                 Tables\Columns\TextColumn::make('status')
                     ->badge()
                     ->color(fn (string $state): string => match ($state) {
-                        ChatAiRequest::STATUS_QUEUED     => 'gray',
+                        ChatAiRequest::STATUS_QUEUED => 'gray',
                         ChatAiRequest::STATUS_PROCESSING => 'warning',
-                        ChatAiRequest::STATUS_COMPLETED  => 'success',
-                        ChatAiRequest::STATUS_FAILED     => 'danger',
+                        ChatAiRequest::STATUS_COMPLETED => 'success',
+                        ChatAiRequest::STATUS_FAILED => 'danger',
                         default => 'gray',
                     }),
 

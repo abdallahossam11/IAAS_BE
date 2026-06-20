@@ -2,7 +2,7 @@ x-app-environment: &app-environment
   APP_NAME: Galala IAAS
   APP_ENV: production
   APP_DEBUG: "false"
-  APP_URL: http://localhost:8000
+  APP_URL: ${APP_URL:-https://api.galalabot.app}
 
   DB_CONNECTION: mysql
   DB_HOST: mysql
@@ -12,6 +12,7 @@ x-app-environment: &app-environment
   DB_PASSWORD: ${DB_PASSWORD:-iaas_password}
 
   SESSION_DRIVER: database
+  SESSION_SECURE_COOKIE: ${SESSION_SECURE_COOKIE:-true}
   CACHE_STORE: redis
   QUEUE_CONNECTION: redis
 
@@ -21,6 +22,15 @@ x-app-environment: &app-environment
   REDIS_HOST: redis
   REDIS_PASSWORD: ${REDIS_PASSWORD:?REDIS_PASSWORD must be set and non-empty}
   REDIS_PORT: 6379
+
+  AI_CHAT_DRIVER: ${AI_CHAT_DRIVER:-http}
+  AI_SERVICE_URL: ${AI_SERVICE_URL:?AI_SERVICE_URL must be set}
+  AI_SERVICE_TOKEN: ${AI_SERVICE_TOKEN:?AI_SERVICE_TOKEN must be set and non-empty}
+  AI_CHAT_PATH: ${AI_CHAT_PATH:-/api/chat}
+  AI_CHAT_SUMMARIZE_PATH: ${AI_CHAT_SUMMARIZE_PATH:-/api/chat/summarize}
+  AI_CONNECT_TIMEOUT_SECONDS: ${AI_CONNECT_TIMEOUT_SECONDS:-10}
+  AI_RESPONSE_TIMEOUT_SECONDS: ${AI_RESPONSE_TIMEOUT_SECONDS:-420}
+  CHAT_MAX_MESSAGE_LENGTH: ${CHAT_MAX_MESSAGE_LENGTH:-3000}
 
 services:
   app:
@@ -66,6 +76,32 @@ services:
       - --tries=1
       - --timeout=460
       - --sleep=3
+    depends_on:
+      redis:
+        condition: service_healthy
+      mysql:
+        condition: service_healthy
+    networks:
+      - galala_network
+
+
+  scheduler:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    working_dir: /var/www/html
+    volumes:
+      - .:/var/www/html
+      - /var/www/html/vendor
+    environment:
+      <<: *app-environment
+      RUN_MIGRATIONS: "false"
+    entrypoint: []
+    command:
+      - php
+      - artisan
+      - schedule:work
     depends_on:
       redis:
         condition: service_healthy

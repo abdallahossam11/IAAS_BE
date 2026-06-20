@@ -37,9 +37,9 @@ class MessagesRelationManager extends RelationManager
                 Tables\Columns\TextColumn::make('role')
                     ->badge()
                     ->color(fn (string $state): string => match ($state) {
-                        ChatMessage::ROLE_USER      => 'info',
+                        ChatMessage::ROLE_USER => 'info',
                         ChatMessage::ROLE_ASSISTANT => 'success',
-                        ChatMessage::ROLE_SYSTEM    => 'gray',
+                        ChatMessage::ROLE_SYSTEM => 'gray',
                         default => 'gray',
                     }),
 
@@ -47,8 +47,8 @@ class MessagesRelationManager extends RelationManager
                     ->badge()
                     ->color(fn (string $state): string => match ($state) {
                         ChatMessage::STATUS_COMPLETED => 'success',
-                        ChatMessage::STATUS_PENDING   => 'warning',
-                        ChatMessage::STATUS_FAILED    => 'danger',
+                        ChatMessage::STATUS_PENDING => 'warning',
+                        ChatMessage::STATUS_FAILED => 'danger',
                         default => 'gray',
                     }),
 

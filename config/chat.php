@@ -11,9 +11,9 @@ return [
 
     // Final AI contract (single service, single token, path-appended).
     'ai' => [
-        'base_url'       => env('AI_SERVICE_URL'),
-        'token'          => env('AI_SERVICE_TOKEN'),
-        'chat_path'      => env('AI_CHAT_PATH', '/api/chat'),
+        'base_url' => env('AI_SERVICE_URL'),
+        'token' => env('AI_SERVICE_TOKEN'),
+        'chat_path' => env('AI_CHAT_PATH', '/api/chat'),
         'summarize_path' => env('AI_CHAT_SUMMARIZE_PATH', '/api/chat/summarize'),
     ],
 

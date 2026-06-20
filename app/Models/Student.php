@@ -3,6 +3,8 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Laravel\Sanctum\HasApiTokens;
 
@@ -39,17 +41,17 @@ class Student extends Authenticatable
     // Relationships
     // ──────────────────────────────────────────────
 
-    public function faculty(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    public function faculty(): BelongsTo
     {
         return $this->belongsTo(Faculty::class);
     }
 
-    public function vehicleRequests(): \Illuminate\Database\Eloquent\Relations\HasMany
+    public function vehicleRequests(): HasMany
     {
         return $this->hasMany(VehicleRequest::class, 'student_id');
     }
 
-    public function chatConversations(): \Illuminate\Database\Eloquent\Relations\HasMany
+    public function chatConversations(): HasMany
     {
         return $this->hasMany(ChatConversation::class, 'student_id');
     }

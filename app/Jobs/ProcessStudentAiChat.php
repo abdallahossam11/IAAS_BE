@@ -19,7 +19,9 @@ class ProcessStudentAiChat implements ShouldQueue
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     public int $timeout = 450;
+
     public int $tries = 1;
+
     public bool $failOnTimeout = true;
 
     public function __construct(public readonly int $aiRequestId) {}
@@ -36,7 +38,7 @@ class ProcessStudentAiChat implements ShouldQueue
             ->whereKey($this->aiRequestId)
             ->where('status', ChatAiRequest::STATUS_QUEUED)
             ->update([
-                'status'       => ChatAiRequest::STATUS_PROCESSING,
+                'status' => ChatAiRequest::STATUS_PROCESSING,
                 'submitted_at' => now(),
             ]);
 
@@ -50,13 +52,13 @@ class ProcessStudentAiChat implements ShouldQueue
         }
 
         $conversation = $aiRequest->conversation;
-        $userMessage  = ChatMessage::find($aiRequest->user_message_id);
+        $userMessage = ChatMessage::find($aiRequest->user_message_id);
 
         if ($conversation === null || $userMessage === null || ! is_string($userMessage->content)) {
             throw new AiClientException('INVALID_AI_RESPONSE', 'The chat request is missing its conversation or user message.');
         }
 
-        $userId            = (int) $conversation->student_id;
+        $userId = (int) $conversation->student_id;
         $existingSessionId = $conversation->session_id; // null until the AI first responds
 
         // The client validates the response shape and that user_id matches.
@@ -79,11 +81,11 @@ class ProcessStudentAiChat implements ShouldQueue
 
             ChatMessage::where('id', $aiRequest->assistant_message_id)->update([
                 'content' => $result['message'],
-                'status'  => ChatMessage::STATUS_COMPLETED,
+                'status' => ChatMessage::STATUS_COMPLETED,
             ]);
 
             $aiRequest->update([
-                'status'       => ChatAiRequest::STATUS_COMPLETED,
+                'status' => ChatAiRequest::STATUS_COMPLETED,
                 'completed_at' => now(),
             ]);
         });
@@ -91,7 +93,7 @@ class ProcessStudentAiChat implements ShouldQueue
 
     public function failed(\Throwable $exception): void
     {
-        $errorCode    = $exception instanceof AiClientException ? $exception->errorCode    : 'UNEXPECTED_ERROR';
+        $errorCode = $exception instanceof AiClientException ? $exception->errorCode : 'UNEXPECTED_ERROR';
         $errorMessage = $exception instanceof AiClientException ? $exception->getMessage() : 'An unexpected error occurred.';
 
         $aiRequest = ChatAiRequest::find($this->aiRequestId);
@@ -101,9 +103,9 @@ class ProcessStudentAiChat implements ShouldQueue
 
         DB::transaction(function () use ($aiRequest, $errorCode, $errorMessage) {
             $aiRequest->update([
-                'status'        => ChatAiRequest::STATUS_FAILED,
-                'failed_at'     => now(),
-                'error_code'    => $errorCode,
+                'status' => ChatAiRequest::STATUS_FAILED,
+                'failed_at' => now(),
+                'error_code' => $errorCode,
                 'error_message' => $errorMessage,
             ]);
 
@@ -115,12 +117,12 @@ class ProcessStudentAiChat implements ShouldQueue
         // Failure-only, secret-safe structured log. Never logs tokens, PII,
         // message content, or the payload — only stable identifiers and codes.
         Log::warning('AI chat request failed', [
-            'chat_type'         => 'student',
-            'ai_request_uuid'   => $aiRequest->uuid,
+            'chat_type' => 'student',
+            'ai_request_uuid' => $aiRequest->uuid,
             'conversation_uuid' => optional($aiRequest->conversation)->uuid,
-            'status'            => ChatAiRequest::STATUS_FAILED,
-            'error_code'        => $errorCode,
-            'attempt_number'    => $aiRequest->attempt_number,
+            'status' => ChatAiRequest::STATUS_FAILED,
+            'error_code' => $errorCode,
+            'attempt_number' => $aiRequest->attempt_number,
         ]);
     }
 }

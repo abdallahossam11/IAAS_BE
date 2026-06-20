@@ -104,6 +104,20 @@ class ViewChatConversation extends ViewRecord
                             ->dateTime(),
                     ])
                     ->columns(2),
+
+                Infolists\Components\Section::make('Summary')
+                    ->schema([
+                        Infolists\Components\TextEntry::make('chatSummary.summary_text')
+                            ->label('Summary')
+                            ->placeholder('Not summarized yet')
+                            ->columnSpanFull(),
+
+                        Infolists\Components\TextEntry::make('summary_updated_at')
+                            ->label('Summary Updated')
+                            ->dateTime()
+                            ->placeholder('—'),
+                    ])
+                    ->columns(2),
             ]);
     }
 }

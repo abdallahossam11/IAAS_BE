@@ -52,13 +52,13 @@ class ViewVehicleRequest extends ViewRecord
                             ->default('—'),
                         Infolists\Components\TextEntry::make('approved_at')
                             ->dateTime()
-                            ->default('—'),
+                            ->placeholder('—'),
                         Infolists\Components\TextEntry::make('semester_start_date')
                             ->date()
-                            ->default('—'),
+                            ->placeholder('—'),
                         Infolists\Components\TextEntry::make('semester_end_date')
                             ->date()
-                            ->default('—'),
+                            ->placeholder('—'),
                         Infolists\Components\TextEntry::make('rejection_reason')
                             ->default('—')
                             ->columnSpanFull(),

@@ -14,7 +14,7 @@ class CreateChatRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'message'           => ['required', 'string', 'max:' . config('chat.max_message_length', 3000)],
+            'message' => ['required', 'string', 'max:'.config('chat.max_message_length', 3000)],
             'client_message_id' => ['required', 'uuid'],
         ];
     }
