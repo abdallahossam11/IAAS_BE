@@ -37,6 +37,10 @@ return [
 
     'mailers' => [
 
+        'zeptomail' => [
+            'transport' => 'zeptomail',
+        ],
+
         'smtp' => [
             'transport' => 'smtp',
             'scheme' => env('MAIL_SCHEME'),

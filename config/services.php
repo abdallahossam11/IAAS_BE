@@ -39,4 +39,10 @@ return [
         'api_key' => env('GATE_API_KEY'),
     ],
 
+    'zeptomail' => [
+        'host' => env('ZEPTOMAIL_HOST', 'api.zeptomail.com'),
+        'authorization' => env('ZEPTOMAIL_AUTHORIZATION'),
+        'agent_alias' => env('ZEPTOMAIL_AGENT_ALIAS'),
+    ],
+
 ];

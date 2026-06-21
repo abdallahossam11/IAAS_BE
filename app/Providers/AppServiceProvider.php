@@ -25,6 +25,8 @@ use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\URL;
+use App\Mail\Transport\ZeptoMailTransport;
+use Illuminate\Support\Facades\Mail;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -59,6 +61,17 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        Mail::extend('zeptomail', function (array $config = []) {
+            $host = config('services.zeptomail.host', 'api.zeptomail.com');
+            $authorization = config('services.zeptomail.authorization');
+
+            if (! is_string($authorization) || trim($authorization) === '') {
+                throw new \RuntimeException('ZEPTOMAIL_AUTHORIZATION is not configured.');
+            }
+
+            return new ZeptoMailTransport($host, $authorization);
+        });
+
         if ($this->app->environment('production')) {
             URL::forceScheme('https');
         }
