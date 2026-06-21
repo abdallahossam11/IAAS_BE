@@ -24,6 +24,7 @@ Route::prefix('v1/student')->group(function () {
     // Protected — requires Sanctum token belonging to a Student
     Route::middleware(['auth:sanctum', 'ensure.student'])->group(function () {
         Route::post('/logout', [AuthController::class, 'logout']);
+        Route::post('/change-password', [\App\Http\Controllers\Api\V1\Student\ChangePasswordController::class, 'update']);
         Route::get('/profile', [ProfileController::class, 'show']);
         Route::get('/vehicle', [VehicleController::class, 'state']);
         Route::post('/vehicle-requests', [VehicleController::class, 'store']);
