@@ -26,9 +26,12 @@ class OtpController extends Controller
             'otp_code' => ['required', 'digits:6'],
         ]);
 
-        // Find the OTP record matching the hashed challenge token
+        // Find the OTP record matching the hashed challenge token. Scoped to the
+        // login purpose so a forgot-password OTP can never be used to log in.
         $challengeHash = hash('sha256', $request->otp_token);
-        $otpRecord = StudentLoginOtp::where('challenge_token_hash', $challengeHash)->first();
+        $otpRecord = StudentLoginOtp::where('challenge_token_hash', $challengeHash)
+            ->where('purpose', StudentLoginOtp::PURPOSE_LOGIN)
+            ->first();
 
         if (! $otpRecord) {
             return $this->invalidResponse();
@@ -77,16 +80,20 @@ class OtpController extends Controller
 
         $token = $student->createToken('student-api-token')->plainTextToken;
 
+        $mustChangePassword = (bool) $student->password_must_be_changed;
+
         return response()->json([
             'success' => true,
             'message' => 'Login successful',
             'data' => [
                 'token' => $token,
+                'must_change_password' => $mustChangePassword,
                 'student' => [
                     'id' => $student->id,
                     'student_id' => $student->student_id,
                     'full_name' => $student->full_name,
                     'email' => $student->email,
+                    'must_change_password' => $mustChangePassword,
                 ],
             ],
         ]);

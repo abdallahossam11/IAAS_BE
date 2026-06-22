@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Middleware\EnsureIsStudent;
+use App\Http\Middleware\EnsurePasswordChanged;
 use App\Http\Middleware\SecurityHeaders;
 use Illuminate\Foundation\Application;
 use Illuminate\Auth\AuthenticationException;
@@ -24,6 +25,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->statefulApi();
         $middleware->alias([
             'ensure.student' => EnsureIsStudent::class,
+            'ensure.password_changed' => EnsurePasswordChanged::class,
             'ensure.gate' => \App\Http\Middleware\EnsureGateApiKey::class,
         ]);
     })

@@ -76,6 +76,39 @@ class StudentProfileApiTest extends TestCase
         $this->assertSame($student->faculty_id, $data['faculty']['id']);
     }
 
+    public function test_profile_includes_faculty_sector_field_and_credit_hours(): void
+    {
+        $faculty = \App\Models\Faculty::factory()->create([
+            'sector' => 'Sciences Sector',
+            'field' => 'Computer Science',
+            'credit_hours' => 127,
+        ]);
+        $student = Student::factory()->create(['faculty_id' => $faculty->id]);
+        Sanctum::actingAs($student, ['*']);
+
+        $data = $this->getJson('/api/v1/student/profile')->assertOk()->json('data');
+
+        $this->assertSame('Sciences Sector', $data['faculty']['sector']);
+        $this->assertSame('Computer Science', $data['faculty']['field']);
+        $this->assertSame(127, $data['faculty']['credit_hours']);
+    }
+
+    public function test_profile_keeps_credits_required_as_student_snapshot(): void
+    {
+        // The student snapshot is independent of the live faculty credit_hours.
+        $faculty = \App\Models\Faculty::factory()->create(['credit_hours' => 200]);
+        $student = Student::factory()->create([
+            'faculty_id' => $faculty->id,
+            'credits_required' => 140,
+        ]);
+        Sanctum::actingAs($student, ['*']);
+
+        $data = $this->getJson('/api/v1/student/profile')->assertOk()->json('data');
+
+        $this->assertSame(140, $data['credits_required']);
+        $this->assertSame(200, $data['faculty']['credit_hours']);
+    }
+
     public function test_profile_does_not_expose_password(): void
     {
         Sanctum::actingAs(Student::factory()->create(), ['*']);
@@ -83,6 +116,37 @@ class StudentProfileApiTest extends TestCase
         $response = $this->getJson('/api/v1/student/profile')->assertOk();
 
         $this->assertArrayNotHasKey('password', $response->json('data'));
+    }
+
+    // =========================================================================
+    // C) Date of birth
+    // =========================================================================
+
+    public function test_factory_can_create_student_with_date_of_birth(): void
+    {
+        $student = Student::factory()->create(['date_of_birth' => '2000-05-15']);
+
+        $this->assertSame('2000-05-15', $student->fresh()->date_of_birth->format('Y-m-d'));
+    }
+
+    public function test_profile_returns_date_of_birth_in_iso_format(): void
+    {
+        $student = Student::factory()->create(['date_of_birth' => '2000-05-15']);
+        Sanctum::actingAs($student, ['*']);
+
+        $this->getJson('/api/v1/student/profile')
+            ->assertOk()
+            ->assertJsonPath('data.date_of_birth', '2000-05-15');
+    }
+
+    public function test_profile_returns_null_when_date_of_birth_missing(): void
+    {
+        $student = Student::factory()->create(['date_of_birth' => null]);
+        Sanctum::actingAs($student, ['*']);
+
+        $this->getJson('/api/v1/student/profile')
+            ->assertOk()
+            ->assertJsonPath('data.date_of_birth', null);
     }
 
     // =========================================================================

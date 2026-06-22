@@ -67,6 +67,7 @@ class StudentDashboardTest extends TestCase
             'student_id' => 'GU-20240001',
             'full_name' => 'Ahmed Hassan',
             'email' => 'ahmed@example.com',
+            'date_of_birth' => '2000-05-15',
             'password' => 'SecureStudent1!',
             'faculty_id' => Faculty::factory()->create()->id,
             'gpa' => 3.5,
@@ -500,5 +501,189 @@ class StudentDashboardTest extends TestCase
             ->fillForm(['password' => 'UpdatedPa55!'])
             ->call('save')
             ->assertHasNoFormErrors();
+    }
+
+    // =========================================================================
+    // J) First-login / temporary-password flag
+    // =========================================================================
+
+    public function test_admin_created_student_must_change_password(): void
+    {
+        // Admin-created accounts use a temporary password, so the student must
+        // change it on first login before normal features unlock.
+        $this->loginAs(Admin::factory()->superAdmin()->create());
+
+        Livewire::test(CreateStudent::class)
+            ->fillForm($this->validFormData())
+            ->call('create')
+            ->assertHasNoFormErrors();
+
+        $student = Student::where('student_id', 'GU-20240001')->firstOrFail();
+
+        $this->assertTrue($student->password_must_be_changed);
+        $this->assertNull($student->password_changed_at);
+    }
+
+    public function test_admin_password_reset_on_edit_requires_change_again(): void
+    {
+        // Setting a new password from the edit form is the admin "reset" path —
+        // it re-arms the must-change gate.
+        $this->loginAs(Admin::factory()->superAdmin()->create());
+
+        $student = Student::factory()->create([
+            'password_must_be_changed' => false,
+            'password_changed_at' => now(),
+        ]);
+
+        Livewire::test(EditStudent::class, ['record' => $student->getKey()])
+            ->fillForm(['password' => 'ResetPa55word!'])
+            ->call('save')
+            ->assertHasNoFormErrors();
+
+        $fresh = $student->fresh();
+        $this->assertTrue($fresh->password_must_be_changed);
+        $this->assertNull($fresh->password_changed_at);
+    }
+
+    public function test_admin_edit_without_password_keeps_change_flag_state(): void
+    {
+        // Editing other fields without touching the password must not re-arm the
+        // gate for a student who has already set their own password.
+        $this->loginAs(Admin::factory()->superAdmin()->create());
+
+        $student = Student::factory()->create([
+            'password_must_be_changed' => false,
+            'password_changed_at' => now(),
+        ]);
+
+        Livewire::test(EditStudent::class, ['record' => $student->getKey()])
+            ->fillForm(['full_name' => 'Renamed Student', 'password' => ''])
+            ->call('save')
+            ->assertHasNoFormErrors();
+
+        $this->assertFalse($student->fresh()->password_must_be_changed);
+    }
+
+    // =========================================================================
+    // K) Date of birth
+    // =========================================================================
+
+    public function test_create_saves_date_of_birth(): void
+    {
+        $this->loginAs(Admin::factory()->superAdmin()->create());
+
+        Livewire::test(CreateStudent::class)
+            ->fillForm($this->validFormData(['date_of_birth' => '1999-03-21']))
+            ->call('create')
+            ->assertHasNoFormErrors();
+
+        $student = Student::where('student_id', 'GU-20240001')->firstOrFail();
+
+        $this->assertSame('1999-03-21', $student->date_of_birth->format('Y-m-d'));
+    }
+
+    public function test_create_requires_date_of_birth(): void
+    {
+        $this->loginAs(Admin::factory()->superAdmin()->create());
+
+        Livewire::test(CreateStudent::class)
+            ->fillForm($this->validFormData(['date_of_birth' => null]))
+            ->call('create')
+            ->assertHasFormErrors(['date_of_birth']);
+    }
+
+    public function test_create_rejects_future_date_of_birth(): void
+    {
+        $this->loginAs(Admin::factory()->superAdmin()->create());
+
+        Livewire::test(CreateStudent::class)
+            ->fillForm($this->validFormData([
+                'date_of_birth' => now()->addDay()->format('Y-m-d'),
+            ]))
+            ->call('create')
+            ->assertHasFormErrors(['date_of_birth']);
+    }
+
+    public function test_edit_can_update_date_of_birth(): void
+    {
+        $this->loginAs(Admin::factory()->superAdmin()->create());
+        $student = Student::factory()->create(['date_of_birth' => '1998-01-01']);
+
+        Livewire::test(EditStudent::class, ['record' => $student->getKey()])
+            ->fillForm(['date_of_birth' => '2001-12-31'])
+            ->call('save')
+            ->assertHasNoFormErrors();
+
+        $this->assertSame('2001-12-31', $student->fresh()->date_of_birth->format('Y-m-d'));
+    }
+
+    public function test_student_list_renders_with_date_of_birth(): void
+    {
+        $this->loginAs(Admin::factory()->superAdmin()->create());
+
+        Student::factory()->create(['date_of_birth' => '2000-06-15']);
+        // A legacy student with a null DOB must not crash the table either.
+        Student::factory()->create(['date_of_birth' => null]);
+
+        $this->get('/admin/students')->assertOk();
+    }
+
+    // =========================================================================
+    // L) Auto credits_required from selected faculty/program credit_hours
+    // =========================================================================
+
+    public function test_create_auto_sets_credits_required_from_faculty(): void
+    {
+        $this->loginAs(Admin::factory()->superAdmin()->create());
+        $faculty = Faculty::factory()->create(['credit_hours' => 211]);
+
+        Livewire::test(CreateStudent::class)
+            ->fillForm($this->validFormData(['faculty_id' => $faculty->id]))
+            ->call('create')
+            ->assertHasNoFormErrors();
+
+        $student = Student::where('student_id', 'GU-20240001')->firstOrFail();
+
+        $this->assertSame(211, $student->credits_required);
+    }
+
+    public function test_create_cannot_override_credits_required_away_from_faculty(): void
+    {
+        // The form submits a tampered credits_required, but the server enforces
+        // the selected faculty's credit_hours regardless.
+        $this->loginAs(Admin::factory()->superAdmin()->create());
+        $faculty = Faculty::factory()->create(['credit_hours' => 211]);
+
+        Livewire::test(CreateStudent::class)
+            ->fillForm($this->validFormData([
+                'faculty_id' => $faculty->id,
+                'credits_required' => 999,
+            ]))
+            ->call('create')
+            ->assertHasNoFormErrors();
+
+        $student = Student::where('student_id', 'GU-20240001')->firstOrFail();
+
+        $this->assertSame(211, $student->credits_required);
+        $this->assertNotSame(999, $student->credits_required);
+    }
+
+    public function test_edit_changing_faculty_updates_credits_required(): void
+    {
+        $this->loginAs(Admin::factory()->superAdmin()->create());
+
+        $facultyA = Faculty::factory()->create(['credit_hours' => 127]);
+        $facultyB = Faculty::factory()->create(['credit_hours' => 165]);
+        $student = Student::factory()->create([
+            'faculty_id' => $facultyA->id,
+            'credits_required' => 127,
+        ]);
+
+        Livewire::test(EditStudent::class, ['record' => $student->getKey()])
+            ->fillForm(['faculty_id' => $facultyB->id])
+            ->call('save')
+            ->assertHasNoFormErrors();
+
+        $this->assertSame(165, $student->fresh()->credits_required);
     }
 }

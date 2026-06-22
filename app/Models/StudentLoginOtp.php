@@ -7,8 +7,15 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class StudentLoginOtp extends Model
 {
+    /** One-time code issued for the two-step login flow. */
+    public const PURPOSE_LOGIN = 'login';
+
+    /** One-time code issued for the forgot-password reset flow. */
+    public const PURPOSE_PASSWORD_RESET = 'password_reset';
+
     protected $fillable = [
         'student_id',
+        'purpose',
         'challenge_token_hash',
         'otp_hash',
         'attempts',

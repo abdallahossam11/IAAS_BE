@@ -3,6 +3,7 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\StudentResource\Pages;
+use App\Models\Faculty;
 use App\Models\Student;
 use App\Support\Security\PasswordRules;
 use Filament\Forms;
@@ -43,6 +44,15 @@ class StudentResource extends Resource
                     ->unique(ignoreRecord: true)
                     ->maxLength(255),
 
+                Forms\Components\DatePicker::make('date_of_birth')
+                    ->label('Date of Birth')
+                    // Required for new admin-created students; left optional on
+                    // edit so legacy students with a null DOB can still be saved.
+                    ->required(fn (string $operation): bool => $operation === 'create')
+                    // Must be a valid past/present date — never in the future.
+                    ->maxDate(today())
+                    ->displayFormat('d M Y'),
+
                 Forms\Components\TextInput::make('password')
                     ->password()
                     ->required(fn (string $operation): bool => $operation === 'create')
@@ -54,10 +64,23 @@ class StudentResource extends Resource
                     ->maxLength(255),
 
                 Forms\Components\Select::make('faculty_id')
+                    ->label('Faculty / Program')
                     ->relationship('faculty', 'name')
                     ->required()
                     ->searchable()
-                    ->preload(),
+                    ->preload()
+                    // Auto-fill credits_required from the selected program's
+                    // credit_hours. Server-side enforcement in the Create/Edit
+                    // page hooks is the source of truth if this live update is
+                    // bypassed.
+                    ->live()
+                    ->afterStateUpdated(function ($state, Forms\Set $set): void {
+                        $creditHours = Faculty::find($state)?->credit_hours;
+
+                        if ($creditHours !== null) {
+                            $set('credits_required', $creditHours);
+                        }
+                    }),
 
                 Forms\Components\TextInput::make('gpa')
                     ->label('GPA')
@@ -77,7 +100,12 @@ class StudentResource extends Resource
                     ->numeric()
                     ->integer()
                     ->minValue(0)
-                    ->default(0),
+                    ->default(0)
+                    // Derived from the selected faculty/program; read-only so it
+                    // cannot be hand-edited. readOnly (not disabled) keeps the
+                    // value dehydrated/submitted.
+                    ->readOnly()
+                    ->helperText('Automatically set from the selected faculty/program credit hours.'),
             ]);
     }
 
@@ -96,6 +124,12 @@ class StudentResource extends Resource
 
                 Tables\Columns\TextColumn::make('email')
                     ->searchable(),
+
+                Tables\Columns\TextColumn::make('date_of_birth')
+                    ->label('Date of Birth')
+                    ->date()
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 Tables\Columns\TextColumn::make('faculty.name')
                     ->sortable(),

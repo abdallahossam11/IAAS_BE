@@ -12,7 +12,16 @@ class FacultyFactory extends Factory
     public function definition(): array
     {
         return [
-            'name' => $this->faker->unique()->word.' Faculty',
+            'name' => $this->faker->unique()->word.' Program',
+            'sector' => $this->faker->randomElement([
+                'Healthcare Sector',
+                'Sciences Sector',
+                'Engineering Sector',
+                'Humanities Sector',
+                'Creative Arts Sector',
+            ]),
+            'field' => $this->faker->word().' Field',
+            'credit_hours' => $this->faker->numberBetween(120, 230),
         ];
     }
 }

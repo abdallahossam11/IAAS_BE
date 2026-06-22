@@ -34,11 +34,13 @@ class VehicleRequestPolicy
     }
 
     /**
-     * Vehicle requests should not be deleted from Filament.
+     * A single vehicle request/permit may be deleted from Filament by
+     * super_admin or vehicle_admin. Deleting an approved row also revokes the
+     * student's active permit (the permit is the same vehicle_requests row).
      */
     public function delete(Admin $user, VehicleRequest $model): bool
     {
-        return false;
+        return $user->isSuperAdmin() || $user->isVehicleAdmin();
     }
 
     /**

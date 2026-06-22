@@ -39,11 +39,17 @@ class ChangePasswordController extends Controller
         // The Student model has a "hashed" cast for password, so assigning
         // the plain new password here stores it hashed in the database.
         $student->password = $validated['new_password'];
+        // Student has now set their own password — clear the first-login gate.
+        $student->password_must_be_changed = false;
+        $student->password_changed_at = now();
         $student->save();
 
         return response()->json([
             'success' => true,
             'message' => 'Password changed successfully.',
+            'data' => [
+                'must_change_password' => false,
+            ],
         ]);
     }
 }

@@ -12,7 +12,17 @@ class Faculty extends Model
 
     protected $fillable = [
         'name',
+        'sector',
+        'field',
+        'credit_hours',
     ];
+
+    protected function casts(): array
+    {
+        return [
+            'credit_hours' => 'integer',
+        ];
+    }
 
     // ──────────────────────────────────────────────
     // Relationships (will be expanded in Phase 3)

@@ -4,6 +4,7 @@ namespace App\Filament\Resources\StudentResource\Pages;
 
 use App\Filament\Resources\StudentResource;
 use App\Mail\StudentAccountCreatedMail;
+use App\Models\Faculty;
 use App\Support\Security\AuditLog;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\CreateRecord;
@@ -20,6 +21,20 @@ class CreateStudent extends CreateRecord
     {
         // Capture the plain text password before the model's 'hashed' cast processes it.
         $this->capturedPlainPassword = $data['password'] ?? '';
+
+        // Admin-created accounts use a temporary password. Force the student to
+        // set their own password on first login before normal features unlock.
+        $data['password_must_be_changed'] = true;
+        $data['password_changed_at'] = null;
+
+        // Server-side source of truth: credits_required always mirrors the
+        // selected faculty/program credit_hours, regardless of any submitted
+        // value. Falls back to the submitted value only for legacy faculties
+        // that have no credit_hours.
+        $creditHours = Faculty::find($data['faculty_id'] ?? null)?->credit_hours;
+        if ($creditHours !== null) {
+            $data['credits_required'] = $creditHours;
+        }
 
         return $data;
     }
@@ -39,10 +54,10 @@ class CreateStudent extends CreateRecord
                 Mail::to($student->email)
                     ->send(new StudentAccountCreatedMail($student, $this->capturedPlainPassword));
             } catch (\Throwable $e) {
-                // Record is kept; only the welcome email failed.
-                // TODO: must_change_password flow — consider adding this flag
-                //       so students are forced to set their own password after
-                //       admin-created accounts, even if the email never arrived.
+                // Record is kept; only the welcome email failed. The account is
+                // flagged password_must_be_changed = true above, so the student
+                // is still forced to set their own password on first login even
+                // if this welcome email never arrived.
                 Log::error('Failed to send StudentAccountCreatedMail', [
                     'student_id' => $student->id,
                     'error' => $e->getMessage(),

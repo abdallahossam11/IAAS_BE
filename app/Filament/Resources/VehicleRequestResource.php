@@ -229,6 +229,32 @@ class VehicleRequestResource extends Resource
                             ->warning()
                             ->send();
                     }),
+
+                // ── Delete Action ──
+                // Authorized by VehicleRequestPolicy::delete() (super_admin /
+                // vehicle_admin only). Hard delete: removing an approved row also
+                // revokes the student's active permit, since the permit is the
+                // same vehicle_requests row.
+                Tables\Actions\DeleteAction::make()
+                    ->label('Delete')
+                    ->requiresConfirmation()
+                    ->modalHeading('Delete vehicle request/permit')
+                    ->modalDescription(fn (VehicleRequest $record): string => $record->status === 'approved'
+                        ? 'This will permanently delete this vehicle request/permit. If this is an approved permit, deleting it will revoke the student\'s vehicle access.'
+                        : 'This will permanently delete this vehicle request/permit.')
+                    ->before(function (VehicleRequest $record): void {
+                        // Logged while the record still exists so the audit entry
+                        // survives the deletion.
+                        AuditLog::warning('vehicle_request_deleted', [
+                            'actor_admin_id' => auth()->id(),
+                            'vehicle_request_id' => $record->id,
+                            'student_id' => $record->student_id,
+                            'status' => $record->status,
+                            'plate_number' => $record->plate_number,
+                            'vehicle_type' => $record->vehicle_type,
+                            'vehicle_model' => $record->vehicle_model,
+                        ]);
+                    }),
             ])
             ->bulkActions([]);
     }

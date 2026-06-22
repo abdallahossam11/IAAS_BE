@@ -15,7 +15,11 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         $this->call([
-            FacultySeeder::class,
+            // Seeds the 42 official academic programs (sector/field/credit_hours)
+            // by exact program name. This is the source of truth for faculties —
+            // the legacy FacultySeeder (broad null-credit placeholder rows) is
+            // intentionally NOT run here. Idempotent (upsert by name).
+            FacultyCreditHoursSeeder::class,
             AdminSeeder::class,
         ]);
     }

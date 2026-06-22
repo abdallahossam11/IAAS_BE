@@ -63,6 +63,16 @@ class FacultyDashboardTest extends TestCase
         $this->actingAs($admin, 'web');
     }
 
+    private function validFacultyData(array $overrides = []): array
+    {
+        return array_merge([
+            'sector' => 'Sciences Sector',
+            'field' => 'Computer Science',
+            'name' => 'Computer Science Program',
+            'credit_hours' => 127,
+        ], $overrides);
+    }
+
     // =========================================================================
     // A) Role access — list page
     // =========================================================================
@@ -129,7 +139,7 @@ class FacultyDashboardTest extends TestCase
         $this->loginAs(Admin::factory()->superAdmin()->create());
 
         Livewire::test(CreateFaculty::class)
-            ->fillForm(['name' => 'Engineering Faculty'])
+            ->fillForm($this->validFacultyData(['name' => 'Engineering Faculty']))
             ->call('create')
             ->assertHasNoFormErrors();
 
@@ -141,7 +151,7 @@ class FacultyDashboardTest extends TestCase
         $this->loginAs(Admin::factory()->academicAdmin()->create());
 
         Livewire::test(CreateFaculty::class)
-            ->fillForm(['name' => 'Science Faculty'])
+            ->fillForm($this->validFacultyData(['name' => 'Science Faculty']))
             ->call('create')
             ->assertHasNoFormErrors();
 
@@ -153,7 +163,7 @@ class FacultyDashboardTest extends TestCase
         $this->loginAs(Admin::factory()->superAdmin()->create());
 
         Livewire::test(CreateFaculty::class)
-            ->fillForm(['name' => ''])
+            ->fillForm($this->validFacultyData(['name' => '']))
             ->call('create')
             ->assertHasFormErrors(['name']);
     }
@@ -164,7 +174,7 @@ class FacultyDashboardTest extends TestCase
         $this->loginAs(Admin::factory()->superAdmin()->create());
 
         Livewire::test(CreateFaculty::class)
-            ->fillForm(['name' => 'Engineering Faculty'])
+            ->fillForm($this->validFacultyData(['name' => 'Engineering Faculty']))
             ->call('create')
             ->assertHasFormErrors(['name']);
     }
@@ -382,5 +392,73 @@ class FacultyDashboardTest extends TestCase
         $this->assertDatabaseHas('students', ['id' => $student->id]);
         $this->assertNotNull($student->faculty_id);
         $this->assertDatabaseHas('faculties', ['id' => $student->faculty_id]);
+    }
+
+    // =========================================================================
+    // I) Credit hours — sector / field / credit_hours
+    // =========================================================================
+
+    public function test_faculty_factory_sets_sector_field_and_credit_hours(): void
+    {
+        $faculty = Faculty::factory()->create();
+
+        $this->assertNotNull($faculty->sector);
+        $this->assertNotNull($faculty->field);
+        $this->assertIsInt($faculty->credit_hours);
+        $this->assertGreaterThan(0, $faculty->credit_hours);
+    }
+
+    public function test_student_factory_credits_required_matches_faculty_credit_hours(): void
+    {
+        // StudentFactory must keep credits_required in sync with the related
+        // faculty/program credit_hours.
+        $student = Student::factory()->create();
+
+        $this->assertSame($student->faculty->credit_hours, $student->credits_required);
+    }
+
+    public function test_create_requires_credit_hours(): void
+    {
+        $this->loginAs(Admin::factory()->superAdmin()->create());
+
+        Livewire::test(CreateFaculty::class)
+            ->fillForm($this->validFacultyData(['credit_hours' => null]))
+            ->call('create')
+            ->assertHasFormErrors(['credit_hours']);
+    }
+
+    public function test_create_saves_sector_field_and_credit_hours(): void
+    {
+        $this->loginAs(Admin::factory()->superAdmin()->create());
+
+        Livewire::test(CreateFaculty::class)
+            ->fillForm($this->validFacultyData([
+                'sector' => 'Engineering Sector',
+                'field' => 'Computer Engineering',
+                'name' => 'Computer Engineering Program',
+                'credit_hours' => 165,
+            ]))
+            ->call('create')
+            ->assertHasNoFormErrors();
+
+        $this->assertDatabaseHas('faculties', [
+            'name' => 'Computer Engineering Program',
+            'sector' => 'Engineering Sector',
+            'field' => 'Computer Engineering',
+            'credit_hours' => 165,
+        ]);
+    }
+
+    public function test_edit_updates_credit_hours(): void
+    {
+        $this->loginAs(Admin::factory()->superAdmin()->create());
+        $faculty = Faculty::factory()->create(['credit_hours' => 120]);
+
+        Livewire::test(EditFaculty::class, ['record' => $faculty->getKey()])
+            ->fillForm(['credit_hours' => 211])
+            ->call('save')
+            ->assertHasNoFormErrors();
+
+        $this->assertSame(211, $faculty->fresh()->credit_hours);
     }
 }

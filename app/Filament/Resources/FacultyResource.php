@@ -26,10 +26,27 @@ class FacultyResource extends Resource
     {
         return $form
             ->schema([
+                Forms\Components\TextInput::make('sector')
+                    ->required()
+                    ->maxLength(255),
+
+                Forms\Components\TextInput::make('field')
+                    ->required()
+                    ->maxLength(255),
+
                 Forms\Components\TextInput::make('name')
+                    ->label('Program Name')
                     ->required()
                     ->unique(ignoreRecord: true)
                     ->maxLength(255),
+
+                Forms\Components\TextInput::make('credit_hours')
+                    ->label('Credit Hours')
+                    ->required()
+                    ->numeric()
+                    ->integer()
+                    ->minValue(1)
+                    ->maxValue(300),
             ]);
     }
 
@@ -37,8 +54,23 @@ class FacultyResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('name')
+                Tables\Columns\TextColumn::make('sector')
                     ->searchable()
+                    ->sortable()
+                    ->toggleable(),
+
+                Tables\Columns\TextColumn::make('field')
+                    ->searchable()
+                    ->sortable()
+                    ->toggleable(),
+
+                Tables\Columns\TextColumn::make('name')
+                    ->label('Program Name')
+                    ->searchable()
+                    ->sortable(),
+
+                Tables\Columns\TextColumn::make('credit_hours')
+                    ->label('Credit Hours')
                     ->sortable(),
 
                 Tables\Columns\TextColumn::make('students_count')

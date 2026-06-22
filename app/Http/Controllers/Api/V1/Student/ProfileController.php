@@ -24,12 +24,19 @@ class ProfileController extends Controller
                 'full_name' => $student->full_name,
                 'student_id' => $student->student_id,
                 'email' => $student->email,
+                // Date only (YYYY-MM-DD) when set, null for not-yet-backfilled students.
+                'date_of_birth' => $student->date_of_birth?->format('Y-m-d'),
+                'must_change_password' => (bool) $student->password_must_be_changed,
                 'faculty' => [
                     'id' => $student->faculty->id,
                     'name' => $student->faculty->name,
+                    'sector' => $student->faculty->sector,
+                    'field' => $student->faculty->field,
+                    'credit_hours' => $student->faculty->credit_hours,
                 ],
                 'gpa' => (float) $student->gpa,
                 'credits_completed' => $student->credits_completed,
+                // Student snapshot — independent of the live faculty value above.
                 'credits_required' => $student->credits_required,
             ],
         ]);

@@ -8,6 +8,7 @@ use App\Models\VehicleRequest;
 use Carbon\Carbon;
 use Filament\Facades\Filament;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Log;
 use Livewire\Livewire;
 use Tests\TestCase;
 
@@ -300,5 +301,152 @@ class VehicleRequestDashboardTest extends TestCase
             ->setTableActionData([])
             ->callMountedTableAction()
             ->assertHasTableActionErrors(['rejection_reason']);
+    }
+
+    // =========================================================================
+    // I) Single delete action — role access
+    // =========================================================================
+
+    public function test_super_admin_can_delete_vehicle_request(): void
+    {
+        $admin = Admin::factory()->superAdmin()->create();
+        $this->loginAs($admin);
+
+        $request = VehicleRequest::factory()->pending()->create();
+
+        Livewire::test(ListVehicleRequests::class)
+            ->callTableAction('delete', $request)
+            ->assertHasNoTableActionErrors();
+
+        $this->assertDatabaseMissing('vehicle_requests', ['id' => $request->id]);
+    }
+
+    public function test_vehicle_admin_can_delete_vehicle_request(): void
+    {
+        $admin = Admin::factory()->vehicleAdmin()->create();
+        $this->loginAs($admin);
+
+        $request = VehicleRequest::factory()->pending()->create();
+
+        Livewire::test(ListVehicleRequests::class)
+            ->callTableAction('delete', $request)
+            ->assertHasNoTableActionErrors();
+
+        $this->assertDatabaseMissing('vehicle_requests', ['id' => $request->id]);
+    }
+
+    public function test_support_admin_cannot_delete_vehicle_request(): void
+    {
+        $admin = Admin::factory()->supportAdmin()->create();
+        $request = VehicleRequest::factory()->pending()->create();
+
+        // Policy denies delete; the support_admin also cannot reach the resource.
+        $this->assertFalse($admin->can('delete', $request));
+    }
+
+    public function test_academic_admin_cannot_delete_vehicle_request(): void
+    {
+        $admin = Admin::factory()->academicAdmin()->create();
+        $request = VehicleRequest::factory()->pending()->create();
+
+        $this->assertFalse($admin->can('delete', $request));
+    }
+
+    public function test_super_and_vehicle_admin_are_authorized_by_policy(): void
+    {
+        $request = VehicleRequest::factory()->pending()->create();
+
+        $this->assertTrue(Admin::factory()->superAdmin()->create()->can('delete', $request));
+        $this->assertTrue(Admin::factory()->vehicleAdmin()->create()->can('delete', $request));
+    }
+
+    // =========================================================================
+    // J) Delete action availability by status + no bulk delete
+    // =========================================================================
+
+    public function test_delete_action_is_visible_for_pending_rejected_and_approved(): void
+    {
+        $admin = Admin::factory()->vehicleAdmin()->create();
+        $this->loginAs($admin);
+
+        $pending = VehicleRequest::factory()->pending()->create();
+        $rejected = VehicleRequest::factory()->rejected($admin)->create();
+        $approved = VehicleRequest::factory()->approved($admin)->create();
+
+        Livewire::test(ListVehicleRequests::class)
+            ->assertTableActionVisible('delete', $pending)
+            ->assertTableActionVisible('delete', $rejected)
+            ->assertTableActionVisible('delete', $approved);
+    }
+
+    public function test_bulk_delete_action_is_not_available(): void
+    {
+        $admin = Admin::factory()->vehicleAdmin()->create();
+        $this->loginAs($admin);
+
+        VehicleRequest::factory()->pending()->create();
+
+        Livewire::test(ListVehicleRequests::class)
+            ->assertTableBulkActionDoesNotExist('delete');
+    }
+
+    // =========================================================================
+    // K) Deleting an approved active permit revokes gate access
+    // =========================================================================
+
+    public function test_deleting_approved_active_permit_revokes_gate_access(): void
+    {
+        $gateKey = 'test-gate-api-key-for-phpunit';
+        config(['services.gate.api_key' => $gateKey]);
+
+        $admin = Admin::factory()->vehicleAdmin()->create();
+        $this->loginAs($admin);
+
+        $permit = VehicleRequest::factory()->approved($admin)->create([
+            'plate_number' => 'ABC-1234',
+            'semester_start_date' => Carbon::today()->subDays(5),
+            'semester_end_date' => Carbon::today()->addMonths(3),
+        ]);
+
+        // Before deletion: the gate allows this plate.
+        $this->withHeader('X-GATE-API-KEY', $gateKey)
+            ->postJson('/api/v1/gate/vehicle-access/check', ['OCR' => 'ABC-1234'])
+            ->assertOk()
+            ->assertJson(['access' => 'allowed']);
+
+        // Delete the approved permit from the dashboard.
+        Livewire::test(ListVehicleRequests::class)
+            ->callTableAction('delete', $permit)
+            ->assertHasNoTableActionErrors();
+
+        $this->assertDatabaseMissing('vehicle_requests', ['id' => $permit->id]);
+
+        // After deletion: the row is gone, so the gate denies the same plate.
+        $this->withHeader('X-GATE-API-KEY', $gateKey)
+            ->postJson('/api/v1/gate/vehicle-access/check', ['OCR' => 'ABC-1234'])
+            ->assertOk()
+            ->assertJson(['access' => 'denied']);
+    }
+
+    // =========================================================================
+    // L) Audit logging
+    // =========================================================================
+
+    public function test_delete_emits_audit_warning(): void
+    {
+        Log::spy();
+
+        $admin = Admin::factory()->vehicleAdmin()->create();
+        $this->loginAs($admin);
+
+        $request = VehicleRequest::factory()->approved($admin)->create();
+
+        Livewire::test(ListVehicleRequests::class)
+            ->callTableAction('delete', $request)
+            ->assertHasNoTableActionErrors();
+
+        Log::shouldHaveReceived('warning')
+            ->once()
+            ->withArgs(fn (string $message) => str_starts_with($message, '[AUDIT] vehicle_request_deleted'));
     }
 }

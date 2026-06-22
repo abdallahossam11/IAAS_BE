@@ -46,8 +46,10 @@ class AuthController extends Controller
             ], 401);
         }
 
-        // Invalidate any previous unused OTPs for this student
+        // Invalidate any previous unused LOGIN OTPs for this student. Scoped to
+        // the login purpose so a pending forgot-password OTP is left untouched.
         StudentLoginOtp::where('student_id', $student->id)
+            ->where('purpose', StudentLoginOtp::PURPOSE_LOGIN)
             ->whereNull('used_at')
             ->update(['used_at' => now()]);
 
@@ -57,6 +59,7 @@ class AuthController extends Controller
 
         $otpRecord = StudentLoginOtp::create([
             'student_id' => $student->id,
+            'purpose' => StudentLoginOtp::PURPOSE_LOGIN,
             'challenge_token_hash' => hash('sha256', $challengeToken),
             'otp_hash' => Hash::make($otpCode),
             'attempts' => 0,

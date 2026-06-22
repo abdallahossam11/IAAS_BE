@@ -16,7 +16,10 @@ class Student extends Authenticatable
         'student_id',
         'full_name',
         'email',
+        'date_of_birth',
         'password',
+        'password_must_be_changed',
+        'password_changed_at',
         'faculty_id',
         'gpa',
         'credits_completed',
@@ -31,6 +34,9 @@ class Student extends Authenticatable
     {
         return [
             'password' => 'hashed',
+            'password_must_be_changed' => 'boolean',
+            'password_changed_at' => 'datetime',
+            'date_of_birth' => 'date',
             'gpa' => 'decimal:2',
             'credits_completed' => 'integer',
             'credits_required' => 'integer',
